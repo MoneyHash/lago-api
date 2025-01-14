@@ -16,6 +16,8 @@ module PaymentRequests
             PaymentRequests::Payments::AdyenService
           when 'gocardless'
             PaymentRequests::Payments::GocardlessService
+          when 'moneyhash'
+            PaymentRequests::Payments::MoneyhashService
           else
             raise(NotImplementedError)
           end

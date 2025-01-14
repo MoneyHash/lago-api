@@ -132,6 +132,8 @@ module Types
           object.gocardless_customer
         when :adyen
           object.adyen_customer
+        when :moneyhash
+          object.moneyhash_customer
         end
       end
 

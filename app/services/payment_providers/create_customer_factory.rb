@@ -14,6 +14,8 @@ module PaymentProviders
         PaymentProviders::Gocardless::Customers::CreateService
       when "stripe"
         PaymentProviders::Stripe::Customers::CreateService
+      when 'moneyhash'
+        PaymentProviderCustomers::MoneyhashCustomer
       end
     end
   end

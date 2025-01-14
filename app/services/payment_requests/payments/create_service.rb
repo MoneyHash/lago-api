@@ -19,6 +19,8 @@ module PaymentRequests
           PaymentRequests::Payments::GocardlessCreateJob.perform_later(payable)
         when :stripe
           PaymentRequests::Payments::StripeCreateJob.perform_later(payable)
+        when :moneyhash
+          PaymentRequests::Payments::MoneyhashCreateJob.perform_later(payable)
         end
 
         result
