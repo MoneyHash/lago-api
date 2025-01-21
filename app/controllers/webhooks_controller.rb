@@ -58,7 +58,7 @@ class WebhooksController < ApplicationController
   def moneyhash
     result = PaymentProviders::Moneyhash::HandleIncomingWebhookService.call(
       organization_id: params[:organization_id],
-      code: params[:moneyhash_code],
+      code: params[:code].presence,
       body: JSON.parse(request.body.read)
     )
 

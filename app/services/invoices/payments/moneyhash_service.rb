@@ -173,10 +173,7 @@ module Invoices
             email: invoice&.customer&.email
           },
           customer: invoice.customer.moneyhash_customer.provider_customer_id,
-          successful_redirect_url: moneyhash_payment_provider.success_redirect_url,
-          failed_redirect_url: moneyhash_payment_provider.failed_redirect_url,
-          pending_external_action_redirect_url: moneyhash_payment_provider.pending_redirect_url,
-          webhook_url: moneyhash_payment_provider.webhook_redirect_url,
+          webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: false,
           tokenize_card: true,
           payment_type: "UNSCHEDULED",

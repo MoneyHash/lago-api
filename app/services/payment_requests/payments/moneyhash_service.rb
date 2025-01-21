@@ -149,7 +149,7 @@ module PaymentRequests
           amount_currency: payable.currency.upcase,
           operation: "purchase",
           customer: customer.moneyhash_customer.provider_customer_id,
-          webhook_url: moneyhash_payment_provider.webhook_redirect_url,
+          webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: true,
           payment_type: "UNSCHEDULED",
           card_token: moneyhash_payment_method,

@@ -19,6 +19,13 @@ module PaymentProviders
       end
     end
 
+    def webhook_end_point
+      URI.join(
+        ENV['LAGO_API_URL'],
+        "webhooks/moneyhash/#{organization_id}?code=#{URI.encode_www_form_component(code)}"
+      )
+    end
+
     def environment
       if Rails.env.production? && live_prefix.present?
         :live
