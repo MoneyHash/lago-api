@@ -35,10 +35,8 @@ module PaymentProviders
       moneyhash_provider.api_key = args[:api_key] if args.key?(:api_key)
       moneyhash_provider.code = args[:code] if args.key?(:code)
       moneyhash_provider.name = args[:name] if args.key?(:name)
-      moneyhash_provider.webhook_redirect_url = args[:webhook_redirect_url] if args.key?(:webhook_redirect_url)
-      moneyhash_provider.failed_redirect_url = args[:failed_redirect_url] if args.key?(:failed_redirect_url)
-      moneyhash_provider.pending_redirect_url = args[:pending_redirect_url] if args.key?(:pending_redirect_url)
-      moneyhash_provider.success_redirect_url = args[:success_redirect_url] if args.key?(:success_redirect_url)
+      moneyhash_provider.flow_id = args[:flow_id] if args.key?(:flow_id)
+      moneyhash_provider.redirect_url = args[:redirect_url] if args.key?(:redirect_url)
 
       moneyhash_provider.save(validate: false)
 

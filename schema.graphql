@@ -59,11 +59,9 @@ input AddMoneyhashPaymentProviderInput {
   """
   clientMutationId: String
   code: String!
-  failedRedirectUrl: String
+  flowId: String
   name: String!
-  pendingRedirectUrl: String!
-  successRedirectUrl: String
-  webhookRedirectUrl: String!
+  redirectUrl: String
 }
 
 type AddOn {
@@ -4839,12 +4837,10 @@ type Metadata {
 type MoneyhashProvider {
   apiKey: String
   code: String!
-  failedRedirectUrl: String
+  flowId: String
   id: ID!
   name: String!
-  pendingRedirectUrl: String
-  successRedirectUrl: String
-  webhookRedirectUrl: String
+  redirectUrl: String
 }
 
 type Mrr {
@@ -8254,12 +8250,11 @@ input UpdateAdyenPaymentProviderInput {
   """
   clientMutationId: String
   code: String
-  failedRedirectUrl: String
+  flowId: String
   id: ID!
   name: String
-  pendingRedirectUrl: String
+  redirectUrl: String
   successRedirectUrl: String
-  webhookRedirectUrl: String
 }
 
 """
@@ -8479,12 +8474,11 @@ input UpdateGocardlessPaymentProviderInput {
   """
   clientMutationId: String
   code: String
-  failedRedirectUrl: String
+  flowId: String
   id: ID!
   name: String
-  pendingRedirectUrl: String
+  redirectUrl: String
   successRedirectUrl: String
-  webhookRedirectUrl: String
 }
 
 """
@@ -8603,12 +8597,11 @@ input UpdateMoneyhashPaymentProviderInput {
   """
   clientMutationId: String
   code: String
-  failedRedirectUrl: String
+  flowId: String
   id: ID!
   name: String
-  pendingRedirectUrl: String
+  redirectUrl: String
   successRedirectUrl: String
-  webhookRedirectUrl: String
 }
 
 """
@@ -8746,12 +8739,11 @@ input UpdateStripePaymentProviderInput {
   """
   clientMutationId: String
   code: String
-  failedRedirectUrl: String
+  flowId: String
   id: ID!
   name: String
-  pendingRedirectUrl: String
+  redirectUrl: String
   successRedirectUrl: String
-  webhookRedirectUrl: String
 }
 
 """

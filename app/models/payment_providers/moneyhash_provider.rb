@@ -5,13 +5,11 @@ module PaymentProviders
     SUCCESS_REDIRECT_URL = 'https://moneyhash.io/'
 
     validates :api_key, presence: true
-    validates :success_redirect_url, url: true, allow_nil: true, length: {maximum: 1024}
-    validates :failed_redirect_url, url: true, allow_nil: true
-    validates :pending_redirect_url, url: true, allow_nil: true
-    validates :webhook_redirect_url, url: true, allow_nil: true
+    validates :flow_id, url: true, allow_nil: true, length: {maximum: 20}
+    validates :redirect_url, url: true, allow_nil: true, length: {maximum: 1024}
 
     secrets_accessors :api_key
-    settings_accessors :failed_redirect_url, :pending_redirect_url, :webhook_redirect_url, :success_redirect_url
+    settings_accessors :flow_id, :redirect_url
 
     def self.api_base_url
       if Rails.env.production?
