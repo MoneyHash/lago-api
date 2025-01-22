@@ -161,11 +161,10 @@ module Invoices
       end
 
       def payment_url_params
-        {
+        payment_params = {
           amount: invoice.total_amount_cents,
           amount_currency: invoice.currency.upcase,
           expires_after_seconds: 600,
-          operation: "purchase",
           billing_data: {
             first_name: invoice&.customer&.firstname,
             last_name: invoice&.customer&.lastname,
@@ -186,6 +185,12 @@ module Invoices
             lago_payable_type: invoice.class.name
           }
         }
+        if moneyhash_payment_provider.flow_id.present?
+          payment_params[:flow_id] = moneyhash_payment_provider.flow_id
+        else
+          payment_params[:operation] = "purchase"
+        end
+        payment_params
       end
 
       def deliver_error_webhook(moneyhash_error)
