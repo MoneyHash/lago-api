@@ -145,7 +145,7 @@ module PaymentRequests
 
       def create_moneyhash_payment
         payment_params = {
-          amount: payable.total_amount_cents,
+          amount: payable.total_amount_cents / 100.0,
           amount_currency: payable.currency.upcase,
           customer: customer.moneyhash_customer.provider_customer_id,
           webhook_url: moneyhash_payment_provider.webhook_end_point,

@@ -162,7 +162,7 @@ module Invoices
 
       def payment_url_params
         payment_params = {
-          amount: invoice.total_amount_cents,
+          amount: invoice.total_amount_cents / 100.0,
           amount_currency: invoice.currency.upcase,
           expires_after_seconds: 600,
           billing_data: {
