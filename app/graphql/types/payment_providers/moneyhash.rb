@@ -16,16 +16,6 @@ module Types
       def api_key
         "#{"•" * 8}…#{object.api_key[-3..]}"
       end
-
-      # def redirect_url
-      #   # Logic to generate or return the redirect URL
-      #   # "https://example.com/redirect"
-      #   object.redirect_url
-      # end
-      #
-      # def flow_id
-      #   object.flow_id
-      # end
     end
   end
 end
