@@ -36,7 +36,6 @@ module PaymentProviders
       moneyhash_provider.code = args[:code] if args.key?(:code)
       moneyhash_provider.name = args[:name] if args.key?(:name)
       moneyhash_provider.flow_id = args[:flow_id] if args.key?(:flow_id)
-      moneyhash_provider.redirect_url = args[:redirect_url] if args.key?(:redirect_url)
 
       moneyhash_provider.save(validate: false)
 

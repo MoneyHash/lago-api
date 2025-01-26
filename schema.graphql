@@ -61,7 +61,6 @@ input AddMoneyhashPaymentProviderInput {
   code: String!
   flowId: String
   name: String!
-  redirectUrl: String
 }
 
 type AddOn {
@@ -4840,7 +4839,6 @@ type MoneyhashProvider {
   flowId: String
   id: ID!
   name: String!
-  redirectUrl: String
 }
 
 type Mrr {
@@ -8253,7 +8251,6 @@ input UpdateAdyenPaymentProviderInput {
   flowId: String
   id: ID!
   name: String
-  redirectUrl: String
   successRedirectUrl: String
 }
 
@@ -8477,7 +8474,6 @@ input UpdateGocardlessPaymentProviderInput {
   flowId: String
   id: ID!
   name: String
-  redirectUrl: String
   successRedirectUrl: String
 }
 
@@ -8600,7 +8596,6 @@ input UpdateMoneyhashPaymentProviderInput {
   flowId: String
   id: ID!
   name: String
-  redirectUrl: String
   successRedirectUrl: String
 }
 
@@ -8742,7 +8737,6 @@ input UpdateStripePaymentProviderInput {
   flowId: String
   id: ID!
   name: String
-  redirectUrl: String
   successRedirectUrl: String
 }
 

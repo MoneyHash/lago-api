@@ -351,18 +351,6 @@
               "deprecationReason": null
             },
             {
-              "name": "redirectUrl",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
               "name": "clientMutationId",
               "description": "A unique identifier for the client performing the mutation.",
               "type": {
@@ -23462,18 +23450,6 @@
               "isDeprecated": false,
               "deprecationReason": null,
               "args": []
-            },
-            {
-              "name": "redirectUrl",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null,
-              "args": []
             }
           ],
           "inputFields": null,
@@ -38320,18 +38296,6 @@
               "deprecationReason": null
             },
             {
-              "name": "redirectUrl",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
               "name": "clientMutationId",
               "description": "A unique identifier for the client performing the mutation.",
               "type": {
@@ -40001,18 +39965,6 @@
               "deprecationReason": null
             },
             {
-              "name": "redirectUrl",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
               "name": "clientMutationId",
               "description": "A unique identifier for the client performing the mutation.",
               "type": {
@@ -40734,18 +40686,6 @@
             },
             {
               "name": "flowId",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "redirectUrl",
               "description": null,
               "type": {
                 "kind": "SCALAR",
@@ -41851,18 +41791,6 @@
             },
             {
               "name": "flowId",
-              "description": null,
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "redirectUrl",
               "description": null,
               "type": {
                 "kind": "SCALAR",

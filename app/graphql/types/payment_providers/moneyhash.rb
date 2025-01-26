@@ -10,7 +10,6 @@ module Types
       field :name, String, null: false
       field :api_key, String, null: true, permission: 'organization:integrations:view'
       field :flow_id, String, null: true, permission: 'organization:integrations:view'
-      field :redirect_url, String, null: true, permission: 'organization:integrations:view'
 
       # NOTE: Api key is a sensitive information. It should not be sent back to the
       #       front end application. Instead we send an obfuscated value

@@ -6,10 +6,9 @@ module PaymentProviders
 
     validates :api_key, presence: true
     validates :flow_id, url: true, allow_nil: true, length: {maximum: 20}
-    validates :redirect_url, url: true, allow_nil: true, length: {maximum: 1024}
 
     secrets_accessors :api_key
-    settings_accessors :flow_id, :redirect_url
+    settings_accessors :flow_id
 
     def self.api_base_url
       if Rails.env.production?

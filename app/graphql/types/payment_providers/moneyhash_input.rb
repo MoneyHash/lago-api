@@ -9,7 +9,6 @@ module Types
       argument :code, String, required: true
       argument :name, String, required: true
       argument :flow_id, String, required: false
-      argument :redirect_url, String, required: false
     end
   end
 end
