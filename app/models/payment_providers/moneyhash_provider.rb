@@ -5,7 +5,7 @@ module PaymentProviders
     SUCCESS_REDIRECT_URL = 'https://moneyhash.io/'
 
     validates :api_key, presence: true
-    validates :flow_id, url: true, allow_nil: true, length: {maximum: 20}
+    validates :flow_id, url: true, presence: true, length: {maximum: 20}
 
     secrets_accessors :api_key
     settings_accessors :flow_id

@@ -59,7 +59,7 @@ input AddMoneyhashPaymentProviderInput {
   """
   clientMutationId: String
   code: String!
-  flowId: String
+  flowId: String!
   name: String!
 }
 
