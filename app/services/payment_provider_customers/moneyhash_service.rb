@@ -146,6 +146,7 @@ module PaymentProviderCustomers
       payment_params = {
         amount: 0,
         amount_currency: customer.currency.presence || 'USD',
+        flow_id: moneyhash_payment_provider.flow_id,
         expires_after_seconds: 69.days.seconds.to_i,
         billing_data: {
           first_name: customer&.firstname,
@@ -162,12 +163,6 @@ module PaymentProviderCustomers
           lago_customer_id: moneyhash_customer.customer_id
         }
       }
-      if moneyhash_payment_provider.flow_id.present?
-        payment_params[:flow_id] = moneyhash_payment_provider.flow_id
-      else
-        payment_params[:operation] = "purchase"
-      end
-      payment_params
     end
 
     def handle_missing_customer(organization_id, metadata)

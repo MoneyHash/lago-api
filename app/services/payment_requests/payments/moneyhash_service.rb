@@ -147,6 +147,7 @@ module PaymentRequests
         payment_params = {
           amount: payable.total_amount_cents / 100.0,
           amount_currency: payable.currency.upcase,
+          flow_id: moneyhash_payment_provider.flow_id,
           customer: customer.moneyhash_customer.provider_customer_id,
           webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: true,
@@ -161,11 +162,6 @@ module PaymentRequests
             lago_payable_type: payable.class.name
           }
         }
-        if moneyhash_payment_provider.flow_id.present?
-          payment_params[:flow_id] = moneyhash_payment_provider.flow_id
-        else
-          payment_params[:operation] = "purchase"
-        end
         response = client.post_with_response(payment_params, headers)
         JSON.parse(response.body)
       rescue LagoHttpClient::HttpError => e
