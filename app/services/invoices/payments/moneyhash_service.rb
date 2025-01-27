@@ -160,8 +160,8 @@ module Invoices
         payment_status
       end
 
-      def payment_url_params
-        payment_params = {
+      def payment_url_params 
+        {
           amount: invoice.total_amount_cents / 100.0,
           amount_currency: invoice.currency.upcase,
           flow_id: moneyhash_payment_provider.flow_id,
@@ -181,9 +181,12 @@ module Invoices
             agreement_id: invoice.id
           },
           custom_fields: {
+            lago_mit: true,
             lago_customer_id: invoice&.customer&.id,
             lago_payable_id: invoice.id,
-            lago_payable_type: invoice.class.name
+            lago_payable_type: invoice.class.name,
+            lago_organization_id: organization&.id,
+            lago_mh_service: "Invoices::Payments::MoneyhashService"
           }
         }
       end

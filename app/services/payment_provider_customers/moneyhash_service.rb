@@ -143,8 +143,8 @@ module PaymentProviderCustomers
     end
 
     def payment_url_params
-      payment_params = {
-        amount: 0,
+      {
+        amount: 5,
         amount_currency: customer.currency.presence || 'USD',
         flow_id: moneyhash_payment_provider.flow_id,
         expires_after_seconds: 69.days.seconds.to_i,
@@ -160,7 +160,10 @@ module PaymentProviderCustomers
         tokenize_card: true,
         payment_type: "UNSCHEDULED",
         custom_fields: {
-          lago_customer_id: moneyhash_customer.customer_id
+          lago_mit: false,
+          lago_customer_id: moneyhash_customer.customer_id,
+          lago_organization_id: moneyhash_customer&.customer&.organization&.id,
+          lago_mh_service: "PaymentProviderCustomers::MoneyhashService"
         }
       }
     end

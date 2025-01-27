@@ -157,9 +157,12 @@ module PaymentRequests
             agreement_id: payable&.invoices&.first&.id
           },
           custom_fields: {
+            lago_mit: true,
             lago_customer_id: customer&.id,
             lago_payable_id: payable.id,
-            lago_payable_type: payable.class.name
+            lago_payable_type: payable.class.name,
+            lago_organization_id: organization&.id,
+            lago_mh_service: "PaymentRequests::Payments::MoneyhashService"
           }
         }
         response = client.post_with_response(payment_params, headers)
