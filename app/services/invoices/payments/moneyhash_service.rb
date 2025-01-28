@@ -178,14 +178,16 @@ module Invoices
           tokenize_card: true,
           payment_type: "UNSCHEDULED",
           recurring_data: {
-            agreement_id: invoice.id
+            agreement_id: invoice.subscriptions&.first&.external_id
           },
           custom_fields: {
-            lago_mit: true,
+            lago_mit: false,
             lago_customer_id: invoice&.customer&.id,
             lago_payable_id: invoice.id,
             lago_payable_type: invoice.class.name,
             lago_organization_id: organization&.id,
+            lago_plan_id: invoice.subscriptions&.first&.plan_id,
+            lago_subscription_external_id: invoice.subscriptions&.first&.external_id,
             lago_mh_service: "Invoices::Payments::MoneyhashService"
           }
         }
