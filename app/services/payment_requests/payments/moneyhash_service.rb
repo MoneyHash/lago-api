@@ -53,6 +53,7 @@ module PaymentRequests
           processing: payment.status == "processing"
         )
         result.payment = payment
+        result.payable_payment_status
         result
       end
 
