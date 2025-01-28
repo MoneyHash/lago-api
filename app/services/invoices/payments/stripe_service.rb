@@ -5,11 +5,6 @@ module Invoices
     class StripeService < BaseService
       include Customers::PaymentProviderFinder
 
-      PENDING_STATUSES = %w[processing requires_capture requires_action requires_confirmation requires_payment_method]
-        .freeze
-      SUCCESS_STATUSES = %w[succeeded].freeze
-      FAILED_STATUSES = %w[canceled].freeze
-
       def initialize(invoice = nil)
         @invoice = invoice
 
@@ -34,14 +29,20 @@ module Invoices
         result.invoice = payment.payable
         return result if payment.payable.payment_succeeded?
 
-        payment.update!(status:)
+        payment.status = status
+
+        payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
+        payment.payable_payment_status = payable_payment_status
+        payment.save!
 
         update_invoice_payment_status(
-          payment_status: invoice_payment_status(status),
+          payment_status: payable_payment_status,
           processing: status == "processing"
         )
 
         result
+      rescue ActiveRecord::RecordInvalid => e
+        result.record_validation_failure!(record: e.record)
       rescue BaseService::FailedResult => e
         result.fail_with_error!(e)
       end
@@ -89,7 +90,7 @@ module Invoices
           status: "pending"
         )
 
-        status = invoice_payment_status(stripe_payment.status)
+        status = payment.payment_provider&.determine_payment_status(stripe_payment.status)
         status = (status.to_sym == :pending) ? :processing : status
 
         payment.provider_payment_id = stripe_payment.id
@@ -148,14 +149,6 @@ module Invoices
 
       def description
         "#{organization.name} - Invoice #{invoice.number}"
-      end
-
-      def invoice_payment_status(payment_status)
-        return :pending if PENDING_STATUSES.include?(payment_status)
-        return :succeeded if SUCCESS_STATUSES.include?(payment_status)
-        return :failed if FAILED_STATUSES.include?(payment_status)
-
-        payment_status&.to_sym
       end
 
       def update_invoice_payment_status(payment_status:, deliver_webhook: true, processing: false)

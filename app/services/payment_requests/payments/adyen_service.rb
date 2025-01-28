@@ -12,48 +12,6 @@ module PaymentRequests
         super(nil)
       end
 
-      def create
-        result.payable = payable
-        return result unless should_process_payment?
-
-        unless payable.total_amount_cents.positive?
-          update_payable_payment_status(payment_status: :succeeded)
-          return result
-        end
-
-        payable.increment_payment_attempts!
-
-        res = create_adyen_payment
-        return result unless res
-
-        adyen_success, _adyen_error = handle_adyen_response(res)
-        unless adyen_success
-          update_payable_payment_status(payment_status: :failed, deliver_webhook: false)
-          return result
-        end
-
-        payment = Payment.new(
-          payable: payable,
-          payment_provider_id: adyen_payment_provider.id,
-          payment_provider_customer_id: customer.adyen_customer.id,
-          amount_cents: payable.total_amount_cents,
-          amount_currency: payable.currency.upcase,
-          provider_payment_id: res.response["pspReference"],
-          status: res.response["resultCode"]
-        )
-
-        payment.save!
-
-        payable_payment_status = adyen_payment_provider.determine_payment_status(payment.status)
-        update_payable_payment_status(payment_status: payable_payment_status)
-        update_invoices_payment_status(payment_status: payable_payment_status)
-
-        Integrations::Aggregator::Payments::CreateJob.perform_later(payment:) if payment.should_sync_payment?
-
-        result.payment = payment
-        result
-      end
-
       def generate_payment_url
         return result unless should_process_payment?
 
@@ -85,9 +43,12 @@ module PaymentRequests
         result.payable = payment.payable
         return result if payment.payable.payment_succeeded?
 
-        payment.update!(status:)
+        payment.status = status
 
-        payable_payment_status = payment.payment_provider&.determine_payment_status(status)
+        payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
+        payment.payable_payment_status = payable_payment_status
+        payment.save!
+
         update_payable_payment_status(payment_status: payable_payment_status)
         update_invoices_payment_status(payment_status: payable_payment_status)
         reset_customer_dunning_campaign_status(payable_payment_status)
@@ -95,6 +56,8 @@ module PaymentRequests
         PaymentRequestMailer.with(payment_request: payment.payable).requested.deliver_later if result.payable.payment_failed?
 
         result
+      rescue ActiveRecord::RecordInvalid => e
+        result.record_validation_failure!(record: e.record)
       rescue BaseService::FailedResult => e
         result.fail_with_error!(e)
       end
@@ -122,57 +85,6 @@ module PaymentRequests
 
       def adyen_payment_provider
         @adyen_payment_provider ||= payment_provider(customer)
-      end
-
-      def update_payment_method_id
-        result = client.checkout.payments_api.payment_methods(
-          Lago::Adyen::Params.new(payment_method_params).to_h
-        ).response
-
-        payment_method_id = result["storedPaymentMethods"]&.first&.dig("id")
-        customer.adyen_customer.update!(payment_method_id:) if payment_method_id
-      end
-
-      def create_adyen_payment
-        update_payment_method_id
-
-        client.checkout.payments_api.payments(Lago::Adyen::Params.new(payment_params).to_h)
-      rescue Adyen::AuthenticationError, Adyen::ValidationError => e
-        deliver_error_webhook(e)
-        update_payable_payment_status(payment_status: :failed, deliver_webhook: false)
-        nil
-      rescue Adyen::AdyenError => e
-        deliver_error_webhook(e)
-        update_payable_payment_status(payment_status: :failed, deliver_webhook: false)
-        result.service_failure!(code: e.code, message: e.message)
-        nil
-      end
-
-      def payment_method_params
-        {
-          merchantAccount: adyen_payment_provider.merchant_account,
-          shopperReference: customer.adyen_customer.provider_customer_id
-        }
-      end
-
-      def payment_params
-        prms = {
-          amount: {
-            currency: payable.currency.upcase,
-            value: payable.total_amount_cents
-          },
-          reference: "Overdue invoices",
-          paymentMethod: {
-            type: "scheme",
-            storedPaymentMethodId: customer.adyen_customer.payment_method_id
-          },
-          shopperReference: customer.adyen_customer.provider_customer_id,
-          merchantAccount: adyen_payment_provider.merchant_account,
-          shopperInteraction: "ContAuth",
-          recurringProcessingModel: "UnscheduledCardOnFile"
-        }
-        prms[:shopperEmail] = customer.email if customer.email
-        prms
       end
 
       def payment_url_params

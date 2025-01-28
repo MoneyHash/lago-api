@@ -56,6 +56,12 @@ module Customers
         customer.firstname = params[:firstname] if params.key?(:firstname)
         customer.lastname = params[:lastname] if params.key?(:lastname)
         customer.customer_type = params[:customer_type] if params.key?(:customer_type)
+
+        if customer.organization.revenue_share_enabled? && customer.editable?
+          customer.account_type = params[:account_type] if params.key?(:account_type)
+          customer.exclude_from_dunning_campaign = customer.partner_account?
+        end
+
         if params.key?(:tax_identification_number)
           customer.tax_identification_number = params[:tax_identification_number]
         end
@@ -82,6 +88,12 @@ module Customers
           taxes_result.raise_if_error!
         end
 
+        Customers::ManageInvoiceCustomSectionsService.call(
+          customer:,
+          skip_invoice_custom_sections: params[:skip_invoice_custom_sections],
+          section_codes: params[:invoice_custom_section_codes]
+        ).raise_if_error!
+
         if new_customer && params[:metadata]
           params[:metadata].each { |m| create_metadata(customer:, args: m) }
         elsif params[:metadata]
@@ -106,7 +118,6 @@ module Customers
         SendWebhookJob.perform_later('customer.updated', customer)
       end
 
-      track_customer_created(customer)
       result
     rescue BaseService::ServiceFailure => e
       result.single_validation_failure!(error_code: e.code)
@@ -163,6 +174,11 @@ module Customers
         customer_type: args[:customer_type]
       )
 
+      if customer&.organization&.revenue_share_enabled?
+        customer.account_type = args[:account_type] if args.key?(:account_type)
+        customer.exclude_from_dunning_campaign = customer.partner_account?
+      end
+
       if args.key?(:finalize_zero_amount_invoice)
         customer.finalize_zero_amount_invoice = args[:finalize_zero_amount_invoice]
       end
@@ -203,7 +219,6 @@ module Customers
       )
 
       SendWebhookJob.perform_later('customer.created', customer)
-      track_customer_created(customer)
       result
     rescue ActiveRecord::RecordInvalid => e
       result.record_validation_failure!(record: e.record)
@@ -319,19 +334,6 @@ module Customers
         params: billing_configuration,
         async: !(billing_configuration || {})[:sync]
       ).call.raise_if_error!
-    end
-
-    def track_customer_created(customer)
-      SegmentTrackJob.perform_later(
-        membership_id: CurrentContext.membership,
-        event: "customer_created",
-        properties: {
-          customer_id: customer.id,
-          created_at: customer.created_at,
-          payment_provider: customer.payment_provider,
-          organization_id: customer.organization_id
-        }
-      )
     end
 
     def should_create_billing_configuration?(billing, customer)

@@ -27,18 +27,23 @@ module V1
         prepaid_credit_amount_cents: model.prepaid_credit_amount_cents,
         file_url: model.file_url,
         version_number: model.version_number,
+        self_billed: model.self_billed,
         created_at: model.created_at.iso8601,
         updated_at: model.updated_at.iso8601
       }
 
       payload.merge!(customer) if include?(:customer)
       payload.merge!(subscriptions) if include?(:subscriptions)
+      payload.merge!(billing_periods) if include?(:billing_periods)
       payload.merge!(fees) if include?(:fees)
       payload.merge!(credits) if include?(:credits)
       payload.merge!(metadata) if include?(:metadata)
       payload.merge!(applied_taxes) if include?(:applied_taxes)
       payload.merge!(error_details) if include?(:error_details)
       payload.merge!(applied_usage_thresholds) if model.progressive_billing?
+      payload.merge!(applied_invoice_custom_sections) if include?(:applied_invoice_custom_sections)
+      payload.merge!(preview_subscriptions) if include?(:preview_subscriptions)
+      payload.merge!(preview_fees) if include?(:preview_fees)
 
       payload
     end
@@ -60,6 +65,12 @@ module V1
       ).serialize
     end
 
+    def preview_subscriptions
+      ::CollectionSerializer.new(
+        model.subscriptions, ::V1::SubscriptionSerializer, collection_name: 'subscriptions'
+      ).serialize
+    end
+
     def fees
       ::CollectionSerializer.new(
         model.fees.includes(
@@ -74,6 +85,12 @@ module V1
         ),
         ::V1::FeeSerializer,
         collection_name: 'fees'
+      ).serialize
+    end
+
+    def preview_fees
+      ::CollectionSerializer.new(
+        model.fees, ::V1::FeeSerializer, collection_name: 'fees'
       ).serialize
     end
 
@@ -110,6 +127,22 @@ module V1
         model.applied_usage_thresholds,
         ::V1::AppliedUsageThresholdSerializer,
         collection_name: 'applied_usage_thresholds'
+      ).serialize
+    end
+
+    def applied_invoice_custom_sections
+      ::CollectionSerializer.new(
+        model.applied_invoice_custom_sections,
+        ::V1::Invoices::AppliedInvoiceCustomSectionSerializer,
+        collection_name: 'applied_invoice_custom_sections'
+      ).serialize
+    end
+
+    def billing_periods
+      ::CollectionSerializer.new(
+        model.invoice_subscriptions,
+        ::V1::Invoices::BillingPeriodSerializer,
+        collection_name: 'billing_periods'
       ).serialize
     end
   end

@@ -9,6 +9,7 @@ module Types
         Types::PaymentProviders::Gocardless,
         Types::PaymentProviders::Stripe,
         Types::PaymentProviders::Moneyhash
+        Types::PaymentProviders::Cashfree
 
       def self.resolve_type(object, _context)
         case object.class.to_s
@@ -20,6 +21,8 @@ module Types
           Types::PaymentProviders::Gocardless
         when 'PaymentProviders::MoneyhashProvider'
           Types::PaymentProviders::Moneyhash
+        when 'PaymentProviders::CashfreeProvider'
+          Types::PaymentProviders::Cashfree
         else
           raise "Unexpected Payment provider type: #{object.inspect}"
         end

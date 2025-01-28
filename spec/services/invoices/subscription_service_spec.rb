@@ -86,7 +86,7 @@ RSpec.describe Invoices::SubscriptionService, type: :service do
         expect(result.invoice.invoice_type).to eq("subscription")
         expect(result.invoice.payment_status).to eq("pending")
         expect(result.invoice.fees.subscription.count).to eq(1)
-        expect(result.invoice.fees.charge.count).to eq(1)
+        expect(result.invoice.fees.charge.count).to eq(0)
 
         expect(result.invoice.currency).to eq("EUR")
         expect(result.invoice.fees_amount_cents).to eq(100)
@@ -103,6 +103,10 @@ RSpec.describe Invoices::SubscriptionService, type: :service do
     end
 
     it_behaves_like "syncs invoice" do
+      let(:service_call) { invoice_service.call }
+    end
+
+    it_behaves_like "applies invoice_custom_sections" do
       let(:service_call) { invoice_service.call }
     end
 
@@ -145,7 +149,7 @@ RSpec.describe Invoices::SubscriptionService, type: :service do
           expect(result.invoice.invoice_type).to eq("subscription")
           expect(result.invoice.payment_status).to eq("pending")
           expect(result.invoice.fees.subscription.count).to eq(1)
-          expect(result.invoice.fees.charge.count).to eq(1)
+          expect(result.invoice.fees.charge.count).to eq(0)
 
           expect(result.invoice.currency).to eq("EUR")
           expect(result.invoice.fees_amount_cents).to eq(100)
@@ -333,6 +337,27 @@ RSpec.describe Invoices::SubscriptionService, type: :service do
             .to have_enqueued_job(DailyUsages::FillFromInvoiceJob)
             .with(invoice: an_instance_of(Invoice), subscriptions: [subscription])
         end
+      end
+    end
+
+    context "when creating invoice for partner" do
+      let(:customer) { create(:customer, :with_salesforce_integration, :with_hubspot_integration, organization:, account_type: 'partner') }
+      let(:salesforce_service) { instance_double(Integrations::Aggregator::Invoices::CreateService) }
+      let(:hubspot_service) { instance_double(Integrations::Aggregator::Invoices::Hubspot::CreateService) }
+      let(:result) { BaseService::Result.new }
+
+      before do
+        allow(Integrations::Aggregator::Invoices::CreateService).to receive(:new).and_return(salesforce_service)
+        allow(salesforce_service).to receive(:call).and_return(result)
+        allow(Integrations::Aggregator::Invoices::Hubspot::CreateService).to receive(:new).and_return(hubspot_service)
+        allow(hubspot_service).to receive(:call).and_return(result)
+      end
+
+      it "doesn't send update to integrations" do
+        invoice_service.call
+
+        expect(Integrations::Aggregator::Invoices::CreateService).not_to have_received(:new)
+        expect(Integrations::Aggregator::Invoices::Hubspot::CreateService).not_to have_received(:new)
       end
     end
   end

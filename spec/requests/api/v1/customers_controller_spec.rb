@@ -28,17 +28,16 @@ RSpec.describe Api::V1::CustomersController, type: :request do
 
       expect(response).to have_http_status(:success)
 
-      aggregate_failures do
-        expect(json[:customer][:lago_id]).to be_present
-        expect(json[:customer][:external_id]).to eq(create_params[:external_id])
-        expect(json[:customer][:name]).to eq(create_params[:name])
-        expect(json[:customer][:firstname]).to eq(create_params[:firstname])
-        expect(json[:customer][:lastname]).to eq(create_params[:lastname])
-        expect(json[:customer][:customer_type]).to eq(create_params[:customer_type])
-        expect(json[:customer][:created_at]).to be_present
-        expect(json[:customer][:currency]).to eq(create_params[:currency])
-        expect(json[:customer][:external_salesforce_id]).to eq(create_params[:external_salesforce_id])
-      end
+      expect(json[:customer][:lago_id]).to be_present
+      expect(json[:customer][:external_id]).to eq(create_params[:external_id])
+      expect(json[:customer][:name]).to eq(create_params[:name])
+      expect(json[:customer][:firstname]).to eq(create_params[:firstname])
+      expect(json[:customer][:lastname]).to eq(create_params[:lastname])
+      expect(json[:customer][:customer_type]).to eq(create_params[:customer_type])
+      expect(json[:customer][:created_at]).to be_present
+      expect(json[:customer][:currency]).to eq(create_params[:currency])
+      expect(json[:customer][:external_salesforce_id]).to eq(create_params[:external_salesforce_id])
+      expect(json[:customer][:account_type]).to eq("customer")
     end
 
     context 'with premium features' do
@@ -193,6 +192,29 @@ RSpec.describe Api::V1::CustomersController, type: :request do
       end
     end
 
+    context "with account_type partner" do
+      let(:organization) { create(:organization, premium_integrations: ["revenue_share"]) }
+
+      let(:create_params) do
+        {
+          external_id: SecureRandom.uuid,
+          name: "Foo Bar",
+          account_type: "partner"
+        }
+      end
+
+      around { |test| lago_premium!(&test) }
+
+      it 'returns a success' do
+        subject
+        expect(response).to have_http_status(:success)
+
+        expect(json[:customer][:lago_id]).to be_present
+        expect(json[:customer][:external_id]).to eq(create_params[:external_id])
+        expect(json[:customer][:account_type]).to eq(create_params[:account_type])
+      end
+    end
+
     context 'with metadata' do
       let(:create_params) do
         {
@@ -236,6 +258,51 @@ RSpec.describe Api::V1::CustomersController, type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
     end
+
+    context 'with invoice_custom_sections' do
+      let(:create_params) do
+        {
+          external_id: SecureRandom.uuid,
+          name: 'Foo Bar',
+          skip_invoice_custom_sections:,
+          invoice_custom_section_codes:
+        }
+      end
+      let(:invoice_custom_sections) { create_list(:invoice_custom_section, 2, organization: organization) }
+
+      before do
+        organization.selected_invoice_custom_sections = [invoice_custom_sections[0]]
+        subject
+      end
+
+      context 'when sending custom invoice_custom_sections' do
+        let(:skip_invoice_custom_sections) { false }
+        let(:invoice_custom_section_codes) { invoice_custom_sections.map(&:code) }
+
+        it 'returns a success' do
+          expect(response).to have_http_status(:success)
+
+          expect(json[:customer][:lago_id]).to be_present
+          expect(json[:customer][:external_id]).to eq(create_params[:external_id])
+
+          sections = json[:customer][:applicable_invoice_custom_sections]
+          expect(sections).to be_present
+          expect(sections.length).to eq(2)
+          expect(sections.map { |sec| sec[:code] }).to match_array(invoice_custom_section_codes)
+        end
+      end
+
+      context 'when sending skip_invoice_custom_sections AND invoice_custom_section_codes' do
+        let(:skip_invoice_custom_sections) { true }
+        let(:invoice_custom_section_codes) { invoice_custom_sections.map(&:code) }
+
+        it 'returns an error' do
+          expect(response).to have_http_status(:unprocessable_entity)
+
+          expect(json[:error_details][:invoice_custom_sections]).to include('skip_sections_and_selected_ids_sent_together')
+        end
+      end
+    end
   end
 
   describe 'GET /api/v1/customers/:customer_external_id/portal_url' do
@@ -267,8 +334,9 @@ RSpec.describe Api::V1::CustomersController, type: :request do
   end
 
   describe 'GET /api/v1/customers' do
-    subject { get_with_token(organization, '/api/v1/customers') }
+    subject { get_with_token(organization, '/api/v1/customers', params) }
 
+    let(:params) { {} }
     let(:organization) { create(:organization) }
 
     before { create_pair(:customer, organization:) }
@@ -282,6 +350,24 @@ RSpec.describe Api::V1::CustomersController, type: :request do
         expect(response).to have_http_status(:ok)
         expect(json[:meta][:total_count]).to eq(2)
         expect(json[:customers][0][:taxes]).not_to be_nil
+      end
+    end
+
+    context "with account_type filters" do
+      let(:params) { {account_type: %w[partner]} }
+
+      let(:partner) do
+        create(:customer, organization:, account_type: "partner")
+      end
+
+      before { partner }
+
+      it "returns partner customers" do
+        subject
+
+        expect(response).to have_http_status(:success)
+        expect(json[:customers].count).to eq(1)
+        expect(json[:customers].first[:lago_id]).to eq(partner.id)
       end
     end
   end

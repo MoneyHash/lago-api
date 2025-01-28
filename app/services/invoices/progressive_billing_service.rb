@@ -21,6 +21,7 @@ module Invoices
 
         Credits::ProgressiveBillingService.call(invoice:)
         Credits::AppliedCouponsService.call(invoice:)
+        Invoices::ApplyInvoiceCustomSectionsService.call(invoice:)
 
         totals_result = Invoices::ComputeTaxesAndTotalsService.call(invoice:)
         return totals_result if !totals_result.success? && totals_result.error.is_a?(BaseService::UnknownTaxFailure)
@@ -77,7 +78,7 @@ module Invoices
 
     def create_fees
       charges.find_each do |charge|
-        Fees::ChargeService.call(invoice:, charge:, subscription:, boundaries:).raise_if_error!
+        Fees::ChargeService.call(invoice:, charge:, subscription:, context: :finalize, boundaries:).raise_if_error!
       end
     end
 

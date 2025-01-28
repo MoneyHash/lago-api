@@ -7,7 +7,6 @@ class Fee < ApplicationRecord
   default_scope -> { kept }
 
   belongs_to :invoice, optional: true
-  belongs_to :organization, optional: true, autosave: false
   belongs_to :charge, -> { with_discarded }, optional: true
   belongs_to :add_on, -> { with_discarded }, optional: true
   belongs_to :applied_add_on, optional: true
@@ -41,8 +40,8 @@ class Fee < ApplicationRecord
   FEE_TYPES = %i[charge add_on subscription credit commitment].freeze
   PAYMENT_STATUS = %i[pending succeeded failed refunded].freeze
 
-  enum fee_type: FEE_TYPES
-  enum payment_status: PAYMENT_STATUS, _prefix: :payment
+  enum :fee_type, FEE_TYPES
+  enum :payment_status, PAYMENT_STATUS, prefix: :payment
 
   validates :amount_currency, inclusion: {in: currency_list}
   validates :units, numericality: {greater_than_or_equal_to: 0}
@@ -162,6 +161,12 @@ class Fee < ApplicationRecord
     end
   end
 
+  def compute_precise_credit_amount_cents(credit_amount, base_amount_cents)
+    return 0 if base_amount_cents.zero?
+
+    (credit_amount * (amount_cents - precise_coupons_amount_cents)).fdiv(base_amount_cents)
+  end
+
   def sub_total_excluding_taxes_amount_cents
     amount_cents - precise_coupons_amount_cents
   end
@@ -251,19 +256,20 @@ end
 #
 # Indexes
 #
-#  index_fees_on_add_on_id                            (add_on_id)
-#  index_fees_on_applied_add_on_id                    (applied_add_on_id)
-#  index_fees_on_charge_filter_id                     (charge_filter_id)
-#  index_fees_on_charge_id                            (charge_id)
-#  index_fees_on_charge_id_and_invoice_id             (charge_id,invoice_id) WHERE (deleted_at IS NULL)
-#  index_fees_on_deleted_at                           (deleted_at)
-#  index_fees_on_group_id                             (group_id)
-#  index_fees_on_invoice_id                           (invoice_id)
-#  index_fees_on_invoiceable                          (invoiceable_type,invoiceable_id)
-#  index_fees_on_organization_id                      (organization_id)
-#  index_fees_on_pay_in_advance_event_transaction_id  (pay_in_advance_event_transaction_id) WHERE (deleted_at IS NULL)
-#  index_fees_on_subscription_id                      (subscription_id)
-#  index_fees_on_true_up_parent_fee_id                (true_up_parent_fee_id)
+#  idx_on_pay_in_advance_event_transaction_id_charge_i_16302ca167  (pay_in_advance_event_transaction_id,charge_id,charge_filter_id) UNIQUE WHERE ((created_at > '2025-01-21 00:00:00'::timestamp without time zone) AND (pay_in_advance_event_transaction_id IS NOT NULL) AND (pay_in_advance = true))
+#  index_fees_on_add_on_id                                         (add_on_id)
+#  index_fees_on_applied_add_on_id                                 (applied_add_on_id)
+#  index_fees_on_charge_filter_id                                  (charge_filter_id)
+#  index_fees_on_charge_id                                         (charge_id)
+#  index_fees_on_charge_id_and_invoice_id                          (charge_id,invoice_id) WHERE (deleted_at IS NULL)
+#  index_fees_on_deleted_at                                        (deleted_at)
+#  index_fees_on_group_id                                          (group_id)
+#  index_fees_on_invoice_id                                        (invoice_id)
+#  index_fees_on_invoiceable                                       (invoiceable_type,invoiceable_id)
+#  index_fees_on_organization_id                                   (organization_id)
+#  index_fees_on_pay_in_advance_event_transaction_id               (pay_in_advance_event_transaction_id) WHERE (deleted_at IS NULL)
+#  index_fees_on_subscription_id                                   (subscription_id)
+#  index_fees_on_true_up_parent_fee_id                             (true_up_parent_fee_id)
 #
 # Foreign Keys
 #

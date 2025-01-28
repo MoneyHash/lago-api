@@ -20,8 +20,8 @@ class AppliedCoupon < ApplicationRecord
     :forever
   ].freeze
 
-  enum status: STATUSES
-  enum frequency: FREQUENCIES
+  enum :status, STATUSES
+  enum :frequency, FREQUENCIES
 
   monetize :amount_cents, disable_validation: true, allow_nil: true
 
@@ -31,6 +31,13 @@ class AppliedCoupon < ApplicationRecord
   def mark_as_terminated!(timestamp = Time.zone.now)
     self.terminated_at ||= timestamp
     terminated!
+  end
+
+  def remaining_amount
+    return @remaining_amount if defined?(@remaining_amount)
+
+    already_applied_amount = credits.sum(&:amount_cents)
+    @remaining_amount = amount_cents - already_applied_amount
   end
 end
 

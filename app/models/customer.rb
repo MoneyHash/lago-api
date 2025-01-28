@@ -20,10 +20,17 @@ class Customer < ApplicationRecord
     individual: 'individual'
   }.freeze
 
+  ACCOUNT_TYPES = {
+    customer: 'customer',
+    partner: 'partner'
+  }.freeze
+
   attribute :finalize_zero_amount_invoice, :integer
-  enum finalize_zero_amount_invoice: FINALIZE_ZERO_AMOUNT_INVOICE_OPTIONS, _prefix: :finalize_zero_amount_invoice
+  enum :finalize_zero_amount_invoice, FINALIZE_ZERO_AMOUNT_INVOICE_OPTIONS, prefix: :finalize_zero_amount_invoice
   attribute :customer_type, :string
-  enum customer_type: CUSTOMER_TYPES, _prefix: :customer_type
+  enum :customer_type, CUSTOMER_TYPES, prefix: :customer_type
+  attribute :account_type, :string
+  enum :account_type, ACCOUNT_TYPES, suffix: :account
 
   before_save :ensure_slug
 
@@ -60,6 +67,7 @@ class Customer < ApplicationRecord
 
   has_one :stripe_customer, class_name: 'PaymentProviderCustomers::StripeCustomer'
   has_one :gocardless_customer, class_name: 'PaymentProviderCustomers::GocardlessCustomer'
+  has_one :cashfree_customer, class_name: 'PaymentProviderCustomers::CashfreeCustomer'
   has_one :adyen_customer, class_name: 'PaymentProviderCustomers::AdyenCustomer'
   has_one :moneyhash_customer, class_name: 'PaymentProviderCustomers::MoneyhashCustomer'
   has_one :netsuite_customer, class_name: 'IntegrationCustomers::NetsuiteCustomer'
@@ -68,7 +76,7 @@ class Customer < ApplicationRecord
   has_one :hubspot_customer, class_name: 'IntegrationCustomers::HubspotCustomer'
   has_one :salesforce_customer, class_name: 'IntegrationCustomers::SalesforceCustomer'
 
-  PAYMENT_PROVIDERS = %w[stripe gocardless adyen moneyhash].freeze
+  PAYMENT_PROVIDERS = %w[stripe gocardless adyen moneyhash cashfree].freeze
 
   default_scope -> { kept }
   sequenced scope: ->(customer) { customer.organization.customers.with_discarded },
@@ -135,7 +143,7 @@ class Customer < ApplicationRecord
   def applicable_invoice_custom_sections
     return [] if skip_invoice_custom_sections?
 
-    selected_invoice_custom_sections.presence || organization.selected_invoice_custom_sections
+    selected_invoice_custom_sections.order(:name).presence || organization.selected_invoice_custom_sections.order(:name)
   end
 
   def editable?
@@ -158,6 +166,8 @@ class Customer < ApplicationRecord
       stripe_customer
     when :gocardless
       gocardless_customer
+    when :cashfree
+      cashfree_customer
     when :adyen
       adyen_customer
     when :moneyhash
@@ -198,7 +208,7 @@ class Customer < ApplicationRecord
   end
 
   def overdue_balance_cents
-    invoices.payment_overdue.where(currency:).sum(:total_amount_cents)
+    invoices.non_self_billed.payment_overdue.where(currency:).sum(:total_amount_cents)
   end
 
   def reset_dunning_campaign!
@@ -230,6 +240,7 @@ end
 # Table name: customers
 #
 #  id                               :uuid             not null, primary key
+#  account_type                     :enum             default("customer"), not null
 #  address_line1                    :string
 #  address_line2                    :string
 #  city                             :string
@@ -278,6 +289,7 @@ end
 #
 # Indexes
 #
+#  index_customers_on_account_type                     (account_type)
 #  index_customers_on_applied_dunning_campaign_id      (applied_dunning_campaign_id)
 #  index_customers_on_deleted_at                       (deleted_at)
 #  index_customers_on_external_id_and_organization_id  (external_id,organization_id) UNIQUE WHERE (deleted_at IS NULL)

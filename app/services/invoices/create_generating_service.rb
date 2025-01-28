@@ -15,6 +15,8 @@ module Invoices
     end
 
     def call
+      return result.forbidden_failure! if customer.partner_account? && !organization.revenue_share_enabled?
+
       ActiveRecord::Base.transaction do
         invoice = Invoice.create!(
           id: invoice_id || SecureRandom.uuid,
@@ -27,7 +29,8 @@ module Invoices
           issuing_date:,
           payment_due_date:,
           net_payment_term: customer.applicable_net_payment_term,
-          skip_charges:
+          skip_charges:,
+          self_billed: customer.partner_account?
         )
         result.invoice = invoice
 

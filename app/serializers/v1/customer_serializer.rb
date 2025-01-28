@@ -6,6 +6,7 @@ module V1
       payload = {
         lago_id: model.id,
         external_id: model.external_id,
+        account_type: model.account_type,
         name: model.name,
         firstname: model.firstname,
         lastname: model.lastname,
@@ -34,13 +35,15 @@ module V1
         external_salesforce_id: model.external_salesforce_id,
         finalize_zero_amount_invoice: model.finalize_zero_amount_invoice,
         billing_configuration:,
-        shipping_address: model.shipping_address
+        shipping_address: model.shipping_address,
+        skip_invoice_custom_sections: model.skip_invoice_custom_sections
       }
 
       payload = payload.merge(metadata)
       payload = payload.merge(taxes) if include?(:taxes)
       payload = payload.merge(vies_check) if include?(:vies_check)
       payload = payload.merge(integration_customers) if include?(:integration_customers)
+      payload = payload.merge(applicable_invoice_custom_sections) if include?(:applicable_invoice_custom_sections)
 
       payload
     end
@@ -71,6 +74,9 @@ module V1
       when :gocardless
         configuration[:provider_customer_id] = model.gocardless_customer&.provider_customer_id
         configuration.merge!(model.gocardless_customer&.settings&.symbolize_keys || {})
+      when :cashfree
+        configuration[:provider_customer_id] = model.cashfree_customer&.provider_customer_id
+        configuration.merge!(model.cashfree_customer&.settings&.symbolize_keys || {})
       when :adyen
         configuration[:provider_customer_id] = model.adyen_customer&.provider_customer_id
         configuration.merge!(model.adyen_customer&.settings&.symbolize_keys || {})
@@ -99,6 +105,14 @@ module V1
         model.integration_customers,
         ::V1::IntegrationCustomerSerializer,
         collection_name: 'integration_customers'
+      ).serialize
+    end
+
+    def applicable_invoice_custom_sections
+      ::CollectionSerializer.new(
+        model.applicable_invoice_custom_sections,
+        ::V1::InvoiceCustomSectionSerializer,
+        collection_name: 'applicable_invoice_custom_sections'
       ).serialize
     end
   end

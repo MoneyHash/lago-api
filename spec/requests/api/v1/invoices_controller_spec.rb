@@ -177,9 +177,20 @@ RSpec.describe Api::V1::InvoicesController, type: :request do
           customer: Hash,
           subscriptions: [],
           credits: [],
-          applied_taxes: []
+          applied_taxes: [],
+          applied_invoice_custom_sections: []
         )
         expect(json[:invoice][:fees].first).to include(lago_charge_filter_id: charge_filter.id)
+      end
+    end
+
+    context 'when customer has an integration customer' do
+      let!(:netsuite_customer) { create(:netsuite_customer, customer:) }
+
+      it 'returns an invoice with customer having integration customers' do
+        subject
+
+        expect(json[:invoice][:customer][:integration_customers].first).to include(lago_id: netsuite_customer.id)
       end
     end
 
@@ -276,6 +287,17 @@ RSpec.describe Api::V1::InvoicesController, type: :request do
           payment_status: invoice.payment_status,
           status: invoice.status
         )
+      end
+
+      context 'when customer has an integration customer' do
+        let!(:netsuite_customer) { create(:netsuite_customer, customer:) }
+
+        it 'returns an invoice with customer having integration customers' do
+          subject
+
+          expect(json[:invoices].first[:customer][:integration_customers].first)
+            .to include(lago_id: netsuite_customer.id)
+        end
       end
     end
 
@@ -480,6 +502,102 @@ RSpec.describe Api::V1::InvoicesController, type: :request do
         expect(response).to have_http_status(:success)
         expect(json[:invoices].count).to eq(1)
         expect(json[:invoices].first[:lago_id]).to eq(matching_invoice.id)
+      end
+    end
+
+    context 'with amount filters' do
+      let(:params) do
+        {
+          amount_from: invoices.second.total_amount_cents,
+          amount_to: invoices.fourth.total_amount_cents
+        }
+      end
+
+      let!(:invoices) do
+        (1..5).to_a.map do |i|
+          create(:invoice, total_amount_cents: i.succ * 1_000, organization:)
+        end # from smallest to biggest
+      end
+
+      it 'returns invoices with total cents amount in provided range' do
+        subject
+
+        expect(response).to have_http_status(:success)
+        expect(json[:invoices].pluck(:lago_id)).to match_array invoices[1..3].pluck(:id)
+      end
+    end
+
+    context 'with metadata filters' do
+      let(:params) do
+        metadata = matching_invoice.metadata.first
+
+        {
+          metadata: {
+            metadata.key => metadata.value
+          }
+        }
+      end
+
+      let(:matching_invoice) { create(:invoice, organization:) }
+
+      before do
+        create(:invoice_metadata, invoice: matching_invoice)
+        create(:invoice, organization:)
+      end
+
+      it 'returns invoices with matching metadata filters' do
+        subject
+
+        expect(response).to have_http_status(:success)
+        expect(json[:invoices].pluck(:lago_id)).to contain_exactly matching_invoice.id
+      end
+    end
+
+    context "with self billed filters" do
+      let(:params) { {self_billed: true} }
+
+      let(:self_billed_invoice) do
+        create(:invoice, :self_billed, customer:, organization:)
+      end
+
+      let(:non_self_billed_invoice) do
+        create(:invoice, customer:, organization:)
+      end
+
+      before do
+        self_billed_invoice
+        non_self_billed_invoice
+      end
+
+      it "returns self billed invoices" do
+        subject
+
+        expect(response).to have_http_status(:success)
+        expect(json[:invoices].count).to eq(1)
+        expect(json[:invoices].first[:lago_id]).to eq(self_billed_invoice.id)
+      end
+
+      context "when self billed is false" do
+        let(:params) { {self_billed: false} }
+
+        it "returns non self billed invoices" do
+          subject
+
+          expect(response).to have_http_status(:success)
+          expect(json[:invoices].count).to eq(1)
+          expect(json[:invoices].first[:lago_id]).to eq(non_self_billed_invoice.id)
+        end
+      end
+
+      context "when self billed is nil" do
+        let(:params) { {self_billed: nil} }
+
+        it "returns all invoices" do
+          subject
+
+          expect(response).to have_http_status(:success)
+          expect(json[:invoices].count).to eq(2)
+        end
       end
     end
   end
@@ -885,6 +1003,52 @@ RSpec.describe Api::V1::InvoicesController, type: :request do
       let(:invoice_id) { SecureRandom.uuid }
 
       it 'returns not found' do
+        subject
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe 'POST /api/v1/invoices/preview' do
+    subject { post_with_token(organization, '/api/v1/invoices/preview', preview_params) }
+
+    let(:plan) { create(:plan, organization:) }
+    let(:preview_params) do
+      {
+        customer: {
+          name: 'test 1',
+          currency: 'EUR',
+          tax_identification_number: '123456789'
+        },
+        plan_code: plan.code,
+        billing_time: 'anniversary'
+      }
+    end
+
+    it 'creates a preview invoice' do
+      subject
+
+      expect(response).to have_http_status(:success)
+      expect(json[:invoice]).to include(
+        invoice_type: 'subscription',
+        fees_amount_cents: 100,
+        taxes_amount_cents: 20,
+        total_amount_cents: 120,
+        currency: 'EUR'
+      )
+    end
+
+    context 'when customer does not exist' do
+      let(:preview_params) do
+        {
+          customer: {
+            external_id: 'unknown'
+          },
+          plan_code: plan.code
+        }
+      end
+
+      it 'returns a not found error' do
         subject
         expect(response).to have_http_status(:not_found)
       end

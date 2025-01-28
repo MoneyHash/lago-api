@@ -18,6 +18,10 @@ class InvoicesQuery < BaseQuery
     invoices = with_payment_status(invoices) if filters.payment_status.present?
     invoices = with_payment_dispute_lost(invoices) unless filters.payment_dispute_lost.nil?
     invoices = with_payment_overdue(invoices) unless filters.payment_overdue.nil?
+    invoices = with_amount_range(invoices) if filters.amount_from.present? || filters.amount_to.present?
+    invoices = with_metadata(invoices) if filters.metadata.present?
+    invoices = with_partially_paid(invoices) unless filters.partially_paid.nil?
+    invoices = with_self_billed(invoices) unless filters.self_billed.nil?
 
     result.invoices = invoices
     result
@@ -86,10 +90,60 @@ class InvoicesQuery < BaseQuery
     scope.where(payment_overdue: filters.payment_overdue)
   end
 
+  def with_partially_paid(scope)
+    partially_paid = ActiveModel::Type::Boolean.new.cast(filters.partially_paid)
+
+    if partially_paid
+      scope.where("total_amount_cents > total_paid_amount_cents AND total_paid_amount_cents > 0")
+    else
+      scope.where("total_amount_cents = total_paid_amount_cents OR total_paid_amount_cents = 0")
+    end
+  end
+
   def with_issuing_date_range(scope)
     scope = scope.where(issuing_date: issuing_date_from..) if filters.issuing_date_from
     scope = scope.where(issuing_date: ..issuing_date_to) if filters.issuing_date_to
     scope
+  end
+
+  def with_amount_range(scope)
+    scope = scope.where("invoices.total_amount_cents >= ?", filters.amount_from) if filters.amount_from
+    scope = scope.where("invoices.total_amount_cents <= ?", filters.amount_to) if filters.amount_to
+    scope
+  end
+
+  def with_metadata(scope)
+    base_scope = scope.left_joins(:metadata).limit(nil).offset(nil)
+    subquery = base_scope
+
+    presence_filters = filters.metadata.select { |_k, v| v.present? }
+    absence_filters = filters.metadata.select { |_k, v| v.blank? }
+
+    presence_filters.each_with_index do |(key, value), index|
+      subquery = if index.zero?
+        subquery.where(metadata: {key:, value:})
+      else
+        subquery.or(base_scope.where(metadata: {key:, value:}))
+      end
+    end
+
+    if presence_filters.any?
+      subquery = subquery
+        .group("invoices.id")
+        .having("COUNT(DISTINCT metadata.key) = ?", presence_filters.size)
+    end
+
+    if absence_filters.any?
+      subquery = subquery.where.not(
+        id: base_scope.where(metadata: {key: absence_filters.keys}).select(:invoice_id)
+      )
+    end
+
+    scope.where(id: subquery.select(:id))
+  end
+
+  def with_self_billed(scope)
+    scope.where(self_billed: ActiveModel::Type::Boolean.new.cast(filters.self_billed))
   end
 
   def issuing_date_from

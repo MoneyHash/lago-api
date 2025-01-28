@@ -61,11 +61,13 @@ Rails.application.routes.draw do
         post :retry, on: :member
         post :retry_payment, on: :member
         post :payment_url, on: :member
+        post :preview, on: :collection
         put :refresh, on: :member
         put :finalize, on: :member
         put :sync_salesforce_id, on: :member
       end
       resources :payment_requests, only: %i[create index]
+      resources :payments, only: %i[create index show]
       resources :plans, param: :code, code: /.*/
       resources :taxes, param: :code, code: /.*/
       resources :wallet_transactions, only: :create
@@ -88,6 +90,7 @@ Rails.application.routes.draw do
 
   resources :webhooks, only: [] do
     post 'stripe/:organization_id', to: 'webhooks#stripe', on: :collection, as: :stripe
+    post 'cashfree/:organization_id', to: 'webhooks#cashfree', on: :collection, as: :cashfree
     post 'gocardless/:organization_id', to: 'webhooks#gocardless', on: :collection, as: :gocardless
     post 'adyen/:organization_id', to: 'webhooks#adyen', on: :collection, as: :adyen
     post 'moneyhash/:organization_id', to: 'webhooks#moneyhash', on: :collection, as: :moneyhash

@@ -6,8 +6,9 @@ RSpec.describe Customers::CreateService, type: :service do
   subject(:customers_service) { described_class.new(user) }
 
   let(:user) { nil }
-  let(:membership) { create(:membership) }
-  let(:organization) { membership.organization }
+
+  let(:membership) { create(:membership, organization:) }
+  let(:organization) { create(:organization) }
   let(:external_id) { SecureRandom.uuid }
 
   describe 'create_from_api' do
@@ -34,7 +35,6 @@ RSpec.describe Customers::CreateService, type: :service do
     end
 
     before do
-      allow(SegmentTrackJob).to receive(:perform_later)
       allow(SendWebhookJob).to receive(:perform_later)
       allow(CurrentContext).to receive(:source).and_return('api')
     end
@@ -43,31 +43,32 @@ RSpec.describe Customers::CreateService, type: :service do
       result = customers_service.create_from_api(organization:, params: create_args)
       expect(result).to be_success
 
-      aggregate_failures do
-        customer = result.customer
-        expect(customer.id).to be_present
-        expect(customer.organization_id).to eq(organization.id)
-        expect(customer.external_id).to eq(create_args[:external_id])
-        expect(customer.name).to eq(create_args[:name])
-        expect(customer.firstname).to eq(create_args[:firstname])
-        expect(customer.lastname).to eq(create_args[:lastname])
-        expect(customer.customer_type).to be_nil
-        expect(customer.currency).to eq(create_args[:currency])
-        expect(customer.tax_identification_number).to eq(create_args[:tax_identification_number])
-        expect(customer.timezone).to be_nil
+      customer = result.customer
+      expect(customer.id).to be_present
+      expect(customer.organization_id).to eq(organization.id)
+      expect(customer.external_id).to eq(create_args[:external_id])
+      expect(customer.name).to eq(create_args[:name])
+      expect(customer.firstname).to eq(create_args[:firstname])
+      expect(customer.lastname).to eq(create_args[:lastname])
+      expect(customer.customer_type).to be_nil
+      expect(customer.currency).to eq(create_args[:currency])
+      expect(customer.tax_identification_number).to eq(create_args[:tax_identification_number])
+      expect(customer.timezone).to be_nil
+      expect(customer).to be_customer_account
+      expect(customer).not_to be_exclude_from_dunning_campaign
 
-        billing = create_args[:billing_configuration]
-        expect(customer.document_locale).to eq(billing[:document_locale])
-        expect(customer.invoice_grace_period).to be_nil
+      billing = create_args[:billing_configuration]
+      expect(customer.document_locale).to eq(billing[:document_locale])
+      expect(customer.invoice_grace_period).to be_nil
+      expect(customer.skip_invoice_custom_sections).to eq(false)
 
-        shipping_address = create_args[:shipping_address]
-        expect(customer.shipping_address_line1).to eq(shipping_address[:address_line1])
-        expect(customer.shipping_address_line2).to eq(shipping_address[:address_line2])
-        expect(customer.shipping_city).to eq(shipping_address[:city])
-        expect(customer.shipping_zipcode).to eq(shipping_address[:zipcode])
-        expect(customer.shipping_state).to eq(shipping_address[:state])
-        expect(customer.shipping_country).to eq(shipping_address[:country])
-      end
+      shipping_address = create_args[:shipping_address]
+      expect(customer.shipping_address_line1).to eq(shipping_address[:address_line1])
+      expect(customer.shipping_address_line2).to eq(shipping_address[:address_line2])
+      expect(customer.shipping_city).to eq(shipping_address[:city])
+      expect(customer.shipping_zipcode).to eq(shipping_address[:zipcode])
+      expect(customer.shipping_state).to eq(shipping_address[:state])
+      expect(customer.shipping_country).to eq(shipping_address[:country])
     end
 
     it 'creates customer with correctly persisted attributes' do
@@ -101,22 +102,20 @@ RSpec.describe Customers::CreateService, type: :service do
       expect(SendWebhookJob).to have_received(:perform_later).with('customer.created', customer)
     end
 
-    it 'calls SegmentTrackJob' do
-      customer = customers_service.create_from_api(
-        organization:,
-        params: create_args
-      ).customer
+    context "with account_type 'partner'" do
+      before do
+        create_args.merge!(account_type: "partner")
+      end
 
-      expect(SegmentTrackJob).to have_received(:perform_later).with(
-        membership_id: CurrentContext.membership,
-        event: 'customer_created',
-        properties: {
-          customer_id: customer.id,
-          created_at: customer.created_at,
-          payment_provider: customer.payment_provider,
-          organization_id: customer.organization_id
-        }
-      )
+      it "creates a customer as customer_account" do
+        result = customers_service.create_from_api(organization:, params: create_args)
+
+        expect(result).to be_success
+
+        customer = result.customer
+        expect(customer).to be_customer_account
+        expect(customer).not_to be_exclude_from_dunning_campaign
+      end
     end
 
     context 'with invalid email' do
@@ -330,6 +329,75 @@ RSpec.describe Customers::CreateService, type: :service do
 
           billing = create_args[:billing_configuration]
           expect(customer.invoice_grace_period).to eq(billing[:invoice_grace_period])
+        end
+      end
+
+      context "with revenue share feature enabled and account_type 'partner'" do
+        let(:organization) do
+          create(:organization, premium_integrations: ["revenue_share"])
+        end
+
+        before do
+          create_args.merge!(account_type: "partner")
+        end
+
+        it "creates a customer as partner_account" do
+          result = customers_service.create_from_api(organization:, params: create_args)
+
+          expect(result).to be_success
+
+          customer = result.customer
+          expect(customer).to be_partner_account
+          expect(customer).to be_exclude_from_dunning_campaign
+        end
+
+        context "when updating a customer that already have an invoice" do
+          let(:customer) { create(:customer, organization:, account_type: "customer") }
+          let(:invoice) { create(:invoice, customer: customer) }
+
+          before { invoice }
+
+          it "doesn't update customer to partner" do
+            result = customers_service.create_from_api(
+              organization:,
+              params: create_args.merge(external_id: customer.external_id)
+            )
+
+            expect(result).to be_success
+
+            customer = result.customer
+            expect(customer).to be_customer_account
+          end
+        end
+      end
+    end
+
+    context 'with invoice_custom_sections params' do
+      let(:invoice_custom_section) { create(:invoice_custom_section, organization:) }
+      let(:create_args) do
+        {
+          external_id:,
+          name: 'Foo Bar',
+          currency: 'EUR',
+          firstname: 'First',
+          lastname: 'Last',
+          invoice_custom_section_codes: [invoice_custom_section.code]
+        }
+      end
+
+      it 'creates customer with invoice_custom_sections' do
+        result = customers_service.create_from_api(
+          organization:,
+          params: create_args
+        )
+
+        aggregate_failures do
+          expect(result).to be_success
+
+          customer = result.customer
+          expect(customer.selected_invoice_custom_sections.count).to eq(1)
+          expect(customer.selected_invoice_custom_sections.first).to eq(invoice_custom_section)
+          expect(customer.skip_invoice_custom_sections).to eq(false)
         end
       end
     end
@@ -1051,7 +1119,6 @@ RSpec.describe Customers::CreateService, type: :service do
     end
 
     before do
-      allow(SegmentTrackJob).to receive(:perform_later)
       allow(SendWebhookJob).to receive(:perform_later)
       allow(CurrentContext).to receive(:source).and_return('graphql')
     end
@@ -1059,46 +1126,31 @@ RSpec.describe Customers::CreateService, type: :service do
     it 'creates a new customer' do
       result = customers_service.create(**create_args)
 
-      aggregate_failures do
-        expect(result).to be_success
+      expect(result).to be_success
 
-        customer = result.customer
-        expect(customer.id).to be_present
-        expect(customer.organization_id).to eq(organization.id)
-        expect(customer.external_id).to eq(create_args[:external_id])
-        expect(customer.name).to eq(create_args[:name])
-        expect(customer.currency).to eq('EUR')
-        expect(customer.timezone).to be_nil
-        expect(customer.invoice_grace_period).to be_nil
+      customer = result.customer
+      expect(customer.id).to be_present
+      expect(customer.organization_id).to eq(organization.id)
+      expect(customer.external_id).to eq(create_args[:external_id])
+      expect(customer.name).to eq(create_args[:name])
+      expect(customer.currency).to eq('EUR')
+      expect(customer.timezone).to be_nil
+      expect(customer.invoice_grace_period).to be_nil
+      expect(customer).to be_customer_account
+      expect(customer).not_to be_exclude_from_dunning_campaign
 
-        shipping_address = create_args[:shipping_address]
-        expect(customer.shipping_address_line1).to eq(shipping_address[:address_line1])
-        expect(customer.shipping_address_line2).to eq(shipping_address[:address_line2])
-        expect(customer.shipping_city).to eq(shipping_address[:city])
-        expect(customer.shipping_zipcode).to eq(shipping_address[:zipcode])
-        expect(customer.shipping_state).to eq(shipping_address[:state])
-        expect(customer.shipping_country).to eq(shipping_address[:country])
-      end
+      shipping_address = create_args[:shipping_address]
+      expect(customer.shipping_address_line1).to eq(shipping_address[:address_line1])
+      expect(customer.shipping_address_line2).to eq(shipping_address[:address_line2])
+      expect(customer.shipping_city).to eq(shipping_address[:city])
+      expect(customer.shipping_zipcode).to eq(shipping_address[:zipcode])
+      expect(customer.shipping_state).to eq(shipping_address[:state])
+      expect(customer.shipping_country).to eq(shipping_address[:country])
     end
 
     it 'calls SendWebhookJob with customer.created' do
       customer = customers_service.create(**create_args).customer
       expect(SendWebhookJob).to have_received(:perform_later).with('customer.created', customer)
-    end
-
-    it 'calls SegmentTrackJob' do
-      customer = customers_service.create(**create_args).customer
-
-      expect(SegmentTrackJob).to have_received(:perform_later).with(
-        membership_id: CurrentContext.membership,
-        event: 'customer_created',
-        properties: {
-          customer_id: customer.id,
-          created_at: customer.created_at,
-          payment_provider: customer.payment_provider,
-          organization_id: customer.organization_id
-        }
-      )
     end
 
     context 'with premium features' do
@@ -1128,6 +1180,26 @@ RSpec.describe Customers::CreateService, type: :service do
           expect(customer.customer_type).to be_nil
           expect(customer.timezone).to eq('Europe/Paris')
           expect(customer.invoice_grace_period).to eq(2)
+        end
+      end
+
+      context "with revenue share feature enabled and account_type 'partner'" do
+        let(:organization) do
+          create(:organization, premium_integrations: ["revenue_share"])
+        end
+
+        before do
+          create_args.merge!(account_type: "partner")
+        end
+
+        it "creates a customer as partner_account" do
+          result = customers_service.create(**create_args)
+
+          expect(result).to be_success
+
+          customer = result.customer
+          expect(customer).to be_partner_account
+          expect(customer).to be_exclude_from_dunning_campaign
         end
       end
     end
@@ -1307,6 +1379,22 @@ RSpec.describe Customers::CreateService, type: :service do
             expect(customer.gocardless_customer).to be_present
           end
         end
+      end
+    end
+
+    context "with account_type 'partner'" do
+      before do
+        create_args.merge!(account_type: "partner")
+      end
+
+      it "creates a customer as customer_account" do
+        result = customers_service.create_from_api(organization:, params: create_args)
+
+        expect(result).to be_success
+
+        customer = result.customer
+        expect(customer).to be_customer_account
+        expect(customer).not_to be_exclude_from_dunning_campaign
       end
     end
 

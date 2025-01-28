@@ -39,9 +39,10 @@ class Organization < ApplicationRecord
   has_many :error_details
   has_many :dunning_campaigns
 
-  has_many :stripe_payment_providers, class_name: "PaymentProviders::StripeProvider"
-  has_many :gocardless_payment_providers, class_name: "PaymentProviders::GocardlessProvider"
-  has_many :adyen_payment_providers, class_name: "PaymentProviders::AdyenProvider"
+  has_many :stripe_payment_providers, class_name: 'PaymentProviders::StripeProvider'
+  has_many :gocardless_payment_providers, class_name: 'PaymentProviders::GocardlessProvider'
+  has_many :cashfree_payment_providers, class_name: 'PaymentProviders::CashfreeProvider'
+  has_many :adyen_payment_providers, class_name: 'PaymentProviders::AdyenProvider'
 
   has_many :hubspot_integrations, class_name: "Integrations::HubspotIntegration"
   has_many :netsuite_integrations, class_name: "Integrations::NetsuiteIntegration"
@@ -62,11 +63,11 @@ class Organization < ApplicationRecord
   ].freeze
 
   INTEGRATIONS = %w[
-    netsuite okta anrok xero progressive_billing hubspot auto_dunning revenue_analytics salesforce api_permissions
+    netsuite okta anrok xero progressive_billing hubspot auto_dunning revenue_analytics salesforce api_permissions revenue_share zero_amount_fees
   ].freeze
   PREMIUM_INTEGRATIONS = INTEGRATIONS - %w[anrok]
 
-  enum document_numbering: DOCUMENT_NUMBERINGS
+  enum :document_numbering, DOCUMENT_NUMBERINGS
 
   validates :country, country_code: true, unless: -> { country.nil? }
   validates :default_currency, inclusion: {in: currency_list}
@@ -124,7 +125,9 @@ class Organization < ApplicationRecord
       stripe_payment_provider
     when "gocardless"
       gocardless_payment_provider
-    when "adyen"
+    when 'cashfree'
+      cashfree_payment_provider
+    when 'adyen'
       adyen_payment_provider
     end
   end
@@ -135,6 +138,10 @@ class Organization < ApplicationRecord
 
   def auto_dunning_enabled?
     License.premium? && premium_integrations.include?("auto_dunning")
+  end
+
+  def revenue_share_enabled?
+    License.premium? && premium_integrations.include?("revenue_share")
   end
 
   def reset_customers_last_dunning_campaign_attempt

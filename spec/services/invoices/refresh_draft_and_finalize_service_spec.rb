@@ -37,10 +37,25 @@ RSpec.describe Invoices::RefreshDraftAndFinalizeService, type: :service do
     let(:fee) { create(:fee, invoice:, subscription:) }
     let(:plan) { create(:plan, organization:, interval: 'monthly') }
     let(:credit_note) { create(:credit_note, :draft, invoice:) }
-    let(:standard_charge) { create(:standard_charge, plan: subscription.plan, charge_model: 'standard') }
+    let(:billable_metric) { create(:billable_metric, organization:, aggregation_type: 'count_agg') }
+
+    let(:standard_charge) do
+      create(:standard_charge, plan: subscription.plan, charge_model: 'standard', billable_metric:)
+    end
+
+    let(:event) do
+      create(
+        :event,
+        organization:,
+        subscription: subscription,
+        code: billable_metric.code,
+        timestamp: Time.current.beginning_of_month - 2.days
+      )
+    end
 
     before do
       standard_charge
+      event
 
       allow(SegmentTrackJob).to receive(:perform_later)
       allow(Invoices::Payments::CreateService).to receive(:call_async).and_call_original
@@ -76,6 +91,10 @@ RSpec.describe Invoices::RefreshDraftAndFinalizeService, type: :service do
     end
 
     it_behaves_like 'syncs invoice' do
+      let(:service_call) { finalize_service.call }
+    end
+
+    it_behaves_like "applies invoice_custom_sections" do
       let(:service_call) { finalize_service.call }
     end
 
@@ -265,6 +284,36 @@ RSpec.describe Invoices::RefreshDraftAndFinalizeService, type: :service do
 
       it 'does not update the invoice' do
         expect { finalize_service.call }.not_to change { invoice.reload.status }
+      end
+    end
+
+    context 'when invoice has invoice_errors' do
+      before do
+        InvoiceError.create(
+          id: invoice.id,
+          backtrace: "[\"/app/app/models/invoice.rb:432:in 'generate_organization_sequential_id'\", \"/app/app/models/invoice.rb:395:in...",
+          error: "\"#\\u003cSequenced::SequenceError: Unable to acquire lock on the database\\u003e\"",
+          invoice: invoice.to_json(except: :file),
+          subscriptions: invoice.subscriptions.to_json
+        )
+      end
+
+      context 'when successfully generated the invoice' do
+        it 'deletes the invoice_errors' do
+          expect { finalize_service.call }.to change(InvoiceError, :count).by(-1)
+          expect(InvoiceError.find_by(id: invoice.id)).to be_nil
+        end
+      end
+
+      context 'when failed to generate the invoice' do
+        before do
+          allow(Invoices::RefreshDraftService).to receive(:call).and_return(BaseService::Result.new.service_failure!(code: 'code', message: 'message'))
+        end
+
+        it 'does not delete the invoice_errors' do
+          expect { finalize_service.call }.to raise_error(BaseService::ServiceFailure)
+          expect(InvoiceError.find_by(id: invoice.id)).to be_present
+        end
       end
     end
   end

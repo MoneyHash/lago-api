@@ -118,5 +118,32 @@ RSpec.describe Invoices::CreateGeneratingService, type: :service do
         end
       end
     end
+
+    context "when customer is a partner account" do
+      let(:customer) { create(:customer, account_type: "partner") }
+
+      around { |test| lago_premium!(&test) }
+
+      it "returns a failure" do
+        result = create_service.call
+
+        expect(result).not_to be_success
+        expect(result.error).to be_a(BaseService::ForbiddenFailure)
+      end
+
+      context "when revenue share premium feature is enabled" do
+        let(:customer) { create(:customer, organization:, account_type: "partner") }
+
+        let(:organization) do
+          create(:organization, premium_integrations: ["revenue_share"])
+        end
+
+        it "creates an invoice with self billed" do
+          result = create_service.call
+
+          expect(result.invoice.self_billed).to eq(true)
+        end
+      end
+    end
   end
 end

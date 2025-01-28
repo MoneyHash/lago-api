@@ -4,18 +4,20 @@ require 'rails_helper'
 
 RSpec.describe ::V1::CustomerSerializer do
   subject(:serializer) do
-    described_class.new(customer, root_name: 'customer', includes: %i[taxes integration_customers])
+    described_class.new(customer, root_name: 'customer', includes: %i[taxes integration_customers applicable_invoice_custom_sections])
   end
 
   let(:customer) { create(:customer, :with_salesforce_integration) }
   let(:metadata) { create(:customer_metadata, customer:) }
   let(:tax) { create(:tax, organization: customer.organization) }
   let(:customer_applied_tax) { create(:customer_applied_tax, customer:, tax:) }
+  let(:invoice_custom_section) { create(:invoice_custom_section, organization: customer.organization) }
 
   before do
     metadata
     customer_applied_tax
     customer.update!(shipping_city: 'Paris', shipping_address_line1: 'test1', shipping_zipcode: '002')
+    customer.selected_invoice_custom_sections << invoice_custom_section
   end
 
   it 'serializes the object' do
@@ -24,6 +26,7 @@ RSpec.describe ::V1::CustomerSerializer do
     aggregate_failures do
       expect(result['customer']['lago_id']).to eq(customer.id)
       expect(result['customer']['external_id']).to eq(customer.external_id)
+      expect(result['customer']['account_type']).to eq(customer.account_type)
       expect(result['customer']['name']).to eq(customer.name)
       expect(result['customer']['firstname']).to eq(customer.firstname)
       expect(result['customer']['lastname']).to eq(customer.lastname)
@@ -63,6 +66,8 @@ RSpec.describe ::V1::CustomerSerializer do
       expect(result['customer']['tax_identification_number']).to eq(customer.tax_identification_number)
       expect(result['customer']['taxes'].count).to eq(1)
       expect(result['customer']['integration_customers'].count).to eq(1)
+      expect(result['customer']['applicable_invoice_custom_sections'].count).to eq(1)
+      expect(result['customer']['skip_invoice_custom_sections']).to eq(false)
     end
   end
 

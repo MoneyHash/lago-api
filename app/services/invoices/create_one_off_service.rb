@@ -35,6 +35,7 @@ module Invoices
         end
 
         Invoices::ComputeAmountsFromFees.call(invoice:, provider_taxes: result.fees_taxes)
+        Invoices::ApplyInvoiceCustomSectionsService.call(invoice:)
         invoice.payment_status = invoice.total_amount_cents.positive? ? :pending : :succeeded
         Invoices::TransitionToFinalStatusService.call(invoice:)
         invoice.save!
@@ -102,7 +103,7 @@ module Invoices
     end
 
     def tax_error?(fee_result)
-      !fee_result.success? && fee_result&.error&.code == 'tax_error'
+      !fee_result.success? && fee_result.error.respond_to?(:code) && fee_result&.error&.code == 'tax_error'
     end
   end
 end

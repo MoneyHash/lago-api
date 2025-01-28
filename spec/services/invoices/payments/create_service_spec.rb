@@ -27,8 +27,17 @@ RSpec.describe Invoices::Payments::CreateService, type: :service do
       provider_customer
 
       allow(provider_class)
-        .to receive(:new).with(payment: an_instance_of(Payment))
-        .and_return(provider_service)
+        .to receive(:new)
+        .with(
+          payment: an_instance_of(Payment),
+          reference: "#{invoice.organization.name} - Invoice #{invoice.number}",
+          metadata: {
+            lago_invoice_id: invoice.id,
+            lago_customer_id: customer.id,
+            invoice_issuing_date: invoice.issuing_date.iso8601,
+            invoice_type: invoice.invoice_type
+          }
+        ).and_return(provider_service)
       allow(provider_service).to receive(:call!)
         .and_return(result)
     end
@@ -69,7 +78,7 @@ RSpec.describe Invoices::Payments::CreateService, type: :service do
       it "calls the gocardless service" do
         create_service.call
 
-        expect(provider_class).to have_received(:new).with(payment: an_instance_of(Payment))
+        expect(provider_class).to have_received(:new)
         expect(provider_service).to have_received(:call!)
       end
     end
@@ -85,6 +94,21 @@ RSpec.describe Invoices::Payments::CreateService, type: :service do
 
         expect(provider_class).to have_received(:new)
         expect(provider_service).to have_received(:call!)
+      end
+    end
+
+    context "when invoice is self_billed" do
+      let(:invoice) do
+        create(:invoice, :self_billed, customer:, organization:, total_amount_cents: 100)
+      end
+
+      it "does not creates a payment" do
+        result = create_service.call
+
+        expect(result).to be_success
+        expect(result.invoice).to eq(invoice)
+        expect(result.payment).to be_nil
+        expect(provider_class).not_to have_received(:new)
       end
     end
 
@@ -193,7 +217,7 @@ RSpec.describe Invoices::Payments::CreateService, type: :service do
               message: "error",
               error_code: "code"
             }
-          ).on_queue(:webhook)
+          ).on_queue(webhook_queue)
       end
 
       context "when payment has a payable_payment_status" do
@@ -215,16 +239,18 @@ RSpec.describe Invoices::Payments::CreateService, type: :service do
       end
 
       context "when invoice is credit? and open?" do
+        let(:invoice) { create(:invoice, :credit, :open, customer:, organization:, total_amount_cents: 100) }
+        let(:wallet_transaction) { create(:wallet_transaction) }
+        let(:fee) { create(:fee, fee_type: :credit, invoice: invoice, invoiceable: wallet_transaction) }
+
         before do
+          fee
+
           allow(Invoices::Payments::DeliverErrorWebhookService)
             .to receive(:call_async).and_call_original
         end
 
         it "delivers an error webhook" do
-          wallet_transaction = create(:wallet_transaction)
-          create(:fee, fee_type: :credit, invoice: invoice, invoiceable: wallet_transaction)
-          invoice.update!(status: :open, invoice_type: :credit)
-
           expect { create_service.call }.to raise_error(BaseService::ServiceFailure)
 
           expect(Invoices::Payments::DeliverErrorWebhookService).to have_received(:call_async)

@@ -318,5 +318,31 @@ RSpec.describe Invoices::CreatePayInAdvanceChargeService, type: :service do
         expect(result.invoice).to be_finalized
       end
     end
+
+    it_behaves_like "applies invoice_custom_sections" do
+      let(:service_call) { invoice_service.call }
+    end
+
+    context 'when an error occurs' do
+      context 'with a stale object error' do
+        before { create(:wallet, customer:, balance_cents: 100) }
+
+        it 'propagates the error' do
+          allow_any_instance_of(Credits::AppliedPrepaidCreditService) # rubocop:disable RSpec/AnyInstance
+            .to receive(:call).and_raise(ActiveRecord::StaleObjectError)
+
+          expect { invoice_service.call }.to raise_error(ActiveRecord::StaleObjectError)
+        end
+      end
+
+      context 'with a sequence error' do
+        it 'propagates the error' do
+          allow_any_instance_of(Invoice) # rubocop:disable RSpec/AnyInstance
+            .to receive(:save!).and_raise(Sequenced::SequenceError)
+
+          expect { invoice_service.call }.to raise_error(Sequenced::SequenceError)
+        end
+      end
+    end
   end
 end

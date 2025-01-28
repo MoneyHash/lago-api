@@ -8,7 +8,7 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
   let(:customer) { create(:customer, payment_provider_code: code) }
   let(:organization) { customer.organization }
   let(:adyen_payment_provider) { create(:adyen_provider, organization:, code:) }
-  let(:adyen_customer) { create(:adyen_customer, customer:) }
+  let(:adyen_customer) { create(:adyen_customer, customer:, payment_provider: adyen_payment_provider) }
   let(:adyen_client) { instance_double(Adyen::Client) }
   let(:payments_api) { Adyen::PaymentsApi.new(adyen_client, 70) }
   let(:payment_links_api) { Adyen::PaymentLinksApi.new(adyen_client, 70) }
@@ -55,7 +55,8 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
         :payment,
         payable: invoice,
         provider_payment_id: "ch_123456",
-        status: "Pending"
+        status: "Pending",
+        payment_provider: adyen_payment_provider
       )
     end
 
@@ -72,6 +73,7 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
 
       expect(result).to be_success
       expect(result.payment.status).to eq("Authorised")
+      expect(result.payment.payable_payment_status).to eq("succeeded")
       expect(result.invoice.reload).to have_attributes(
         payment_status: "succeeded",
         ready_for_payment_processing: false
@@ -87,6 +89,7 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
 
         expect(result).to be_success
         expect(result.payment.status).to eq("Refused")
+        expect(result.payment.payable_payment_status).to eq("failed")
         expect(result.invoice.reload).to have_attributes(
           payment_status: "failed",
           ready_for_payment_processing: true
@@ -118,8 +121,8 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
         aggregate_failures do
           expect(result).not_to be_success
           expect(result.error).to be_a(BaseService::ValidationFailure)
-          expect(result.error.messages.keys).to include(:payment_status)
-          expect(result.error.messages[:payment_status]).to include("value_is_invalid")
+          expect(result.error.messages.keys).to include(:payable_payment_status)
+          expect(result.error.messages[:payable_payment_status]).to include("value_is_invalid")
         end
       end
     end
@@ -142,6 +145,7 @@ RSpec.describe Invoices::Payments::AdyenService, type: :service do
         aggregate_failures do
           expect(result).to be_success
           expect(result.payment.status).to eq("succeeded")
+          expect(result.payment.payable_payment_status).to eq("succeeded")
           expect(result.invoice.reload).to have_attributes(
             payment_status: "succeeded",
             ready_for_payment_processing: false

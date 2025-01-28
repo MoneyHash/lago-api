@@ -11,7 +11,7 @@ class Invoice < ApplicationRecord
   CREDIT_NOTES_MIN_VERSION = 2
   COUPON_BEFORE_VAT_VERSION = 3
 
-  before_save :ensure_organization_sequential_id, if: -> { organization.per_organization? }
+  before_save :ensure_organization_sequential_id, if: -> { organization.per_organization? && !self_billed }
   before_save :ensure_number
 
   belongs_to :customer, -> { with_discarded }
@@ -73,12 +73,12 @@ class Invoice < ApplicationRecord
   STATUS = VISIBLE_STATUS.merge(INVISIBLE_STATUS).freeze
   GENERATED_INVOICE_STATUSES = %w[finalized closed].freeze
 
-  enum invoice_type: INVOICE_TYPES
-  enum payment_status: PAYMENT_STATUS, _prefix: :payment
-  enum status: STATUS
+  enum :invoice_type, INVOICE_TYPES
+  enum :payment_status, PAYMENT_STATUS, prefix: :payment
+  enum :status, STATUS
 
   attribute :tax_status, :string
-  enum tax_status: TAX_STATUSES, _prefix: :tax
+  enum :tax_status, TAX_STATUSES, prefix: :tax
 
   aasm column: 'status', timestamps: true do
     state :generating
@@ -121,6 +121,9 @@ class Invoice < ApplicationRecord
       .where(subscriptions: {status: 'active'})
       .distinct
   }
+
+  scope :self_billed, -> { where(self_billed: true) }
+  scope :non_self_billed, -> { where(self_billed: false) }
 
   validates :issuing_date, :currency, presence: true
   validates :timezone, timezone: true, allow_nil: true
@@ -331,7 +334,7 @@ class Invoice < ApplicationRecord
   end
 
   def should_sync_invoice?
-    finalized? && customer.integration_customers.accounting_kind.any? { |c| c.integration.sync_invoices }
+    !self_billed && finalized? && customer.integration_customers.accounting_kind.any? { |c| c.integration.sync_invoices }
   end
 
   def should_sync_hubspot_invoice?
@@ -339,14 +342,15 @@ class Invoice < ApplicationRecord
   end
 
   def should_sync_salesforce_invoice?
-    finalized? && customer.integration_customers.salesforce_kind.any?
+    !self_billed && finalized? && customer.integration_customers.salesforce_kind.any?
   end
 
   def should_update_hubspot_invoice?
-    customer.integration_customers.hubspot_kind.any? { |c| c.integration.sync_invoices }
+    !self_billed && customer.integration_customers.hubspot_kind.any? { |c| c.integration.sync_invoices }
   end
 
   def document_invoice_name
+    return I18n.t("invoice.self_billed.document_name") if self_billed?
     return I18n.t('invoice.prepaid_credit_invoice') if credit?
 
     if %w[AU AE ID NZ].include?(organization.country)
@@ -374,7 +378,7 @@ class Invoice < ApplicationRecord
 
     return unless status_changed_to_finalized?
 
-    if organization.per_customer?
+    if organization.per_customer? || self_billed
       # NOTE: Example of expected customer slug format is ORG_PREFIX-005
       customer_slug = "#{organization.document_number_prefix}-#{format("%03d", customer.sequential_id)}"
       formatted_sequential_id = format('%03d', sequential_id)
@@ -401,7 +405,7 @@ class Invoice < ApplicationRecord
       "date_trunc('month', created_at::timestamptz AT TIME ZONE ?)::date = ?",
       timezone,
       Time.now.in_time_zone(timezone).beginning_of_month.to_date
-    )
+    ).non_self_billed
 
     result = Invoice.with_advisory_lock(
       organization_id,
@@ -410,10 +414,11 @@ class Invoice < ApplicationRecord
     ) do
       # If previous invoice had different numbering, base sequential id is the total number of invoices
       organization_sequential_id = if switched_from_customer_numbering?
-        organization.invoices.with_generated_number.count
+        organization.invoices.non_self_billed.with_generated_number.count
       else
         organization
           .invoices
+          .non_self_billed
           .where.not(organization_sequential_id: 0)
           .order(organization_sequential_id: :desc)
           .limit(1)
@@ -435,7 +440,7 @@ class Invoice < ApplicationRecord
   end
 
   def switched_from_customer_numbering?
-    last_invoice = organization.invoices.order(created_at: :desc).with_generated_number.first
+    last_invoice = organization.invoices.non_self_billed.order(created_at: :desc).with_generated_number.first
 
     return false unless last_invoice
 
@@ -474,6 +479,7 @@ end
 #  progressive_billing_credit_amount_cents :bigint           default(0), not null
 #  ready_for_payment_processing            :boolean          default(TRUE), not null
 #  ready_to_be_refreshed                   :boolean          default(FALSE), not null
+#  self_billed                             :boolean          default(FALSE), not null
 #  skip_charges                            :boolean          default(FALSE), not null
 #  status                                  :integer          default("finalized"), not null
 #  sub_total_excluding_taxes_amount_cents  :bigint           default(0), not null
@@ -502,6 +508,7 @@ end
 #  index_invoices_on_organization_id                (organization_id)
 #  index_invoices_on_payment_overdue                (payment_overdue)
 #  index_invoices_on_ready_to_be_refreshed          (ready_to_be_refreshed) WHERE (ready_to_be_refreshed = true)
+#  index_invoices_on_self_billed                    (self_billed)
 #  index_invoices_on_sequential_id                  (sequential_id)
 #  index_invoices_on_status                         (status)
 #

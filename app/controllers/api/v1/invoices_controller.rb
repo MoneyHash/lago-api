@@ -51,15 +51,20 @@ module Api
           },
           search_term: params[:search_term],
           filters: {
-            payment_status: (params[:payment_status] if valid_payment_status?(params[:payment_status])),
-            payment_dispute_lost: params[:payment_dispute_lost],
-            payment_overdue: (params[:payment_overdue] if %w[true false].include?(params[:payment_overdue])),
-            status: (params[:status] if valid_status?(params[:status])),
+            amount_from: params[:amount_from],
+            amount_to: params[:amount_to],
             currency: params[:currency],
             customer_external_id: params[:external_customer_id],
             invoice_type: params[:invoice_type],
             issuing_date_from: (Date.strptime(params[:issuing_date_from]) if valid_date?(params[:issuing_date_from])),
-            issuing_date_to: (Date.strptime(params[:issuing_date_to]) if valid_date?(params[:issuing_date_to]))
+            issuing_date_to: (Date.strptime(params[:issuing_date_to]) if valid_date?(params[:issuing_date_to])),
+            metadata: params[:metadata]&.permit!.to_h,
+            partially_paid: (params[:partially_paid] if %w[true false].include?(params[:partially_paid])),
+            payment_dispute_lost: params[:payment_dispute_lost],
+            payment_overdue: (params[:payment_overdue] if %w[true false].include?(params[:payment_overdue])),
+            payment_status: (params[:payment_status] if valid_payment_status?(params[:payment_status])),
+            self_billed: (params[:self_billed] if %w[true false].include?(params[:self_billed])),
+            status: (params[:status] if valid_status?(params[:status]))
           }
         )
 
@@ -70,7 +75,7 @@ module Api
               ::V1::InvoiceSerializer,
               collection_name: 'invoices',
               meta: pagination_metadata(result.invoices),
-              includes: %i[customer metadata applied_taxes]
+              includes: %i[customer integration_customers metadata applied_taxes]
             )
           )
         else
@@ -197,6 +202,31 @@ module Api
         end
       end
 
+      def preview
+        result = Invoices::PreviewContextService.call(
+          organization: current_organization,
+          params: preview_params.to_h.deep_symbolize_keys
+        )
+        return render_error_response(result) unless result.success?
+
+        result = Invoices::PreviewService.call(
+          customer: result.customer,
+          subscription: result.subscription,
+          applied_coupons: result.applied_coupons
+        )
+        if result.success?
+          render(
+            json: ::V1::InvoiceSerializer.new(
+              result.invoice,
+              root_name: 'invoice',
+              includes: %i[customer integration_customers credits applied_taxes preview_subscriptions preview_fees]
+            )
+          )
+        else
+          render_error_response(result)
+        end
+      end
+
       private
 
       def create_params
@@ -229,6 +259,44 @@ module Api
         )
       end
 
+      def preview_params
+        params.permit(
+          :plan_code,
+          :billing_time,
+          :subscription_at,
+          coupons: [
+            :code,
+            :name,
+            :coupon_type,
+            :amount_cents,
+            :amount_currency,
+            :percentage_rate,
+            :frequency,
+            :frequency_duration,
+            :frequency_duration_remaining
+          ],
+          customer: [
+            :external_id,
+            :name,
+            :tax_identification_number,
+            :currency,
+            :timezone,
+            shipping_address: [
+              :address_line1,
+              :address_line2,
+              :city,
+              :zipcode,
+              :state,
+              :country
+            ],
+            integration_customers: [
+              :integration_type,
+              :integration_code
+            ]
+          ]
+        )
+      end
+
       def sync_salesforce_id_params
         params.permit(
           :external_id,
@@ -241,7 +309,7 @@ module Api
           json: ::V1::InvoiceSerializer.new(
             invoice,
             root_name: 'invoice',
-            includes: %i[customer subscriptions fees credits metadata applied_taxes error_details]
+            includes: %i[customer integration_customers billing_periods subscriptions fees credits metadata applied_taxes error_details applied_invoice_custom_sections]
           )
         )
       end

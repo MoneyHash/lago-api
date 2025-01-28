@@ -7,6 +7,7 @@ module Types
 
       field :id, ID, null: false
 
+      field :account_type, Types::Customers::AccountTypeEnum, null: false
       field :customer_type, Types::Customers::CustomerTypeEnum
       field :display_name, String, null: false
       field :external_id, String, null: false
@@ -130,6 +131,8 @@ module Types
           object.stripe_customer
         when :gocardless
           object.gocardless_customer
+        when :cashfree
+          object.cashfree_customer
         when :adyen
           object.adyen_customer
         when :moneyhash

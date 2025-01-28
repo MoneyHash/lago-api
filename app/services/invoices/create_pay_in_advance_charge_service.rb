@@ -41,6 +41,7 @@ module Invoices
         Invoices::ComputeAmountsFromFees.call(invoice:, provider_taxes: result.fees_taxes)
         create_credit_note_credit
         create_applied_prepaid_credit if should_create_applied_prepaid_credit?
+        Invoices::ApplyInvoiceCustomSectionsService.call(invoice:)
 
         invoice.payment_status = invoice.total_amount_cents.positive? ? :pending : :succeeded
         Invoices::TransitionToFinalStatusService.call(invoice:)
@@ -59,7 +60,7 @@ module Invoices
       result
     rescue ActiveRecord::RecordInvalid => e
       result.record_validation_failure!(record: e.record)
-    rescue Sequenced::SequenceError
+    rescue Sequenced::SequenceError, ActiveRecord::StaleObjectError
       raise
     rescue => e
       result.fail_with_error!(e)

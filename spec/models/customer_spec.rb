@@ -236,6 +236,36 @@ RSpec.describe Customer, type: :model do
     end
   end
 
+  describe "account_type enum" do
+    subject(:customer) { build_stubbed(:customer, account_type:) }
+
+    context "when account_type is customer" do
+      let(:account_type) { "customer" }
+
+      it "identifies the customer as a customer" do
+        expect(customer.account_type).to eq("customer")
+        expect(customer).to be_customer_account
+      end
+    end
+
+    context "when account_type is partner" do
+      let(:account_type) { "partner" }
+
+      it "identifies the customer as partner" do
+        expect(customer.account_type).to eq("partner")
+        expect(customer).to be_partner_account
+      end
+    end
+
+    context "when account_type is nil" do
+      subject(:customer) { build(:customer) }
+
+      it "defaults to customer for existing customers" do
+        expect(customer.account_type).to eq "customer"
+      end
+    end
+  end
+
   describe 'preferred_document_locale' do
     subject(:customer) do
       described_class.new(
@@ -433,8 +463,8 @@ RSpec.describe Customer, type: :model do
     context 'when customer does not have any selected_invoice_custom_sections but organization has' do
       before { organization.selected_invoice_custom_sections << organization_section }
 
-      it 'returns the organization\'s invoice_custom_sections' do
-        expect(customer.applicable_invoice_custom_sections).to eq([organization_section])
+      it "returns the organization's invoice_custom_sections" do
+        expect(customer.applicable_invoice_custom_sections).to match_array([organization_section])
       end
     end
 
@@ -635,6 +665,17 @@ RSpec.describe Customer, type: :model do
       end
 
       it "only sums the overdue invoices" do
+        expect(customer.overdue_balance_cents).to eq 2_00
+      end
+    end
+
+    context "when invoices are self billed" do
+      before do
+        create(:invoice, customer: customer, payment_overdue: true, currency: "USD", total_amount_cents: 2_00)
+        create(:invoice, :self_billed, customer: customer, payment_overdue: true, currency: "USD", total_amount_cents: 3_00)
+      end
+
+      it "ignores self billed invoices" do
         expect(customer.overdue_balance_cents).to eq 2_00
       end
     end

@@ -146,8 +146,7 @@ RSpec.describe Invoices::RefreshDraftService, type: :service do
       create(:standard_charge, plan: subscription.plan, charge_model: 'standard')
 
       expect { refresh_service.call }
-        .to change { invoice.reload.fees.count }.from(1).to(2)
-        .and change { invoice.fees.pluck(:id).include?(fee.id) }.from(true).to(false)
+        .to change { invoice.fees.pluck(:id).include?(fee.id) }.from(true).to(false)
         .and change { invoice.fees.pluck(:created_at).uniq }.to([invoice.created_at])
 
       expect(invoice.invoice_subscriptions.first.recurring).to be_truthy
@@ -171,6 +170,10 @@ RSpec.describe Invoices::RefreshDraftService, type: :service do
         .to change { invoice.reload.progressive_billing_credit_amount_cents }.from(1239000).to(0)
     end
 
+    it_behaves_like "applies invoice_custom_sections" do
+      let(:service_call) { refresh_service.call }
+    end
+
     context 'when there is a tax_integration set up' do
       let(:integration) { create(:anrok_integration, organization:) }
       let(:integration_customer) { create(:anrok_customer, integration:, customer:) }
@@ -183,7 +186,7 @@ RSpec.describe Invoices::RefreshDraftService, type: :service do
 
       context 'when taxes are unknown' do
         it 'regenerates fees' do
-          expect { refresh_service.call }.to change { invoice.fees.count }.from(0).to(2)
+          expect { refresh_service.call }.to change { invoice.fees.count }.from(0).to(1)
         end
 
         it 'sets correct tax status' do
@@ -200,6 +203,21 @@ RSpec.describe Invoices::RefreshDraftService, type: :service do
             .and change(invoice, :sub_total_excluding_taxes_amount_cents).from(9900090).to(100)
             .and change(invoice, :sub_total_including_taxes_amount_cents).from(9900100).to(0)
         end
+      end
+    end
+
+    context 'when invoice has other applied invoice_custom_sections' do
+      let(:invoice_custom_sections) { create_list(:invoice_custom_section, 4, organization: organization) }
+      let(:applied_invoice_custom_sections) { create_list(:applied_invoice_custom_section, 2, invoice: invoice) }
+
+      before do
+        applied_invoice_custom_sections
+        customer.selected_invoice_custom_sections = invoice_custom_sections.take(3)
+      end
+
+      it 'creates new applied_invoice_custom_sections' do
+        expect { refresh_service.call }.to change { invoice.reload.applied_invoice_custom_sections.count }.from(2).to(3)
+        expect(invoice.applied_invoice_custom_sections.map(&:code)).to match_array(customer.selected_invoice_custom_sections.map(&:code))
       end
     end
 
