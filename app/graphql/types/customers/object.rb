@@ -127,16 +127,11 @@ module Types
 
       def provider_customer
         case object&.payment_provider&.to_sym
-        when :stripe
-          object.stripe_customer
-        when :gocardless
-          object.gocardless_customer
-        when :cashfree
-          object.cashfree_customer
-        when :adyen
-          object.adyen_customer
-        when :moneyhash
-          object.moneyhash_customer
+        when :stripe then object.stripe_customer
+        when :gocardless then object.gocardless_customer
+        when :cashfree then object.cashfree_customer
+        when :adyen then object.adyen_customer
+        when :moneyhash then object.moneyhash_customer
         end
       end
 
