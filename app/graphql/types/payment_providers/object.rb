@@ -8,7 +8,7 @@ module Types
       possible_types Types::PaymentProviders::Adyen,
         Types::PaymentProviders::Gocardless,
         Types::PaymentProviders::Stripe,
-        Types::PaymentProviders::Moneyhash
+        Types::PaymentProviders::Moneyhash,
         Types::PaymentProviders::Cashfree
 
       def self.resolve_type(object, _context)
