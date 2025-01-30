@@ -160,7 +160,7 @@ module Invoices
         payment_status
       end
 
-      def payment_url_params 
+      def payment_url_params
         {
           amount: invoice.total_amount_cents / 100.0,
           amount_currency: invoice.currency.upcase,
