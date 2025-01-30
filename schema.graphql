@@ -6253,7 +6253,7 @@ type OverdueBalanceCollection {
   metadata: CollectionMetadata!
 }
 
-union PaymentProvider = AdyenProvider | GocardlessProvider | MoneyhashProvider | StripeProvider
+union PaymentProvider = AdyenProvider | CashfreeProvider | GocardlessProvider | MoneyhashProvider | StripeProvider
 
 """
 PaymentProviderCollection type
