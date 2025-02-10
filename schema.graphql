@@ -77,6 +77,7 @@ input AddMoneyhashPaymentProviderInput {
   code: String!
   flowId: String!
   name: String!
+  successRedirectUrl: String
 }
 
 type AddOn {
@@ -4879,6 +4880,7 @@ type MoneyhashProvider {
   flowId: String
   id: ID!
   name: String!
+  successRedirectUrl: String
 }
 
 type Mrr {
