@@ -1,0 +1,139 @@
+{
+  "type": "transaction.purchase.failed",
+  "status_id": "gyG43B9",
+  "operation_id": "ZDDQyjZ",
+  "intent": {
+    "id": "gaYY7yg",
+    "created": "2025-02-28 04:45:21.204273+00:00",
+    "custom_fields": { "test": "single transaction 2.9" },
+    "split_data": [],
+    "custom_form_answers": null,
+    "amount": { "value": 50, "currency": "USD" },
+    "flow_data": {
+      "id": "b97mQgv",
+      "version": 1,
+      "sequence": {
+        "id": 31246,
+        "alias": "RK8BY0b-Untitled Trigger",
+        "last_action": { "id": 55162, "alias": "9Fx5nNc-Payment Provider" }
+      }
+    },
+    "payment_status": {
+      "status": "AUTHORIZE_ATTEMPT_FAILED",
+      "balances": {
+        "total_authorized": 0,
+        "total_voided": 0,
+        "available_to_void": 0,
+        "total_captured": 0,
+        "available_to_capture": 0,
+        "total_refunded": 0,
+        "available_to_refund": 0
+      }
+    }
+  },
+  "account": { "id": "b97jnZv" },
+  "transaction": {
+    "type": "payment",
+    "id": "fdcdc98a-e4fb-42b9-99b9-fd28267867c3",
+    "created": "2025-02-28 04:45:52.222663+00:00",
+    "status": "purchase.failed",
+    "billing_data": {
+      "name": "Mustafa eid",
+      "first_name": "Mustafa",
+      "last_name": "eid",
+      "email": "approve@forter.com",
+      "phone_number": "+201064610000",
+      "address": "test address",
+      "address1": "address 1",
+      "apartment": null,
+      "floor": null,
+      "building": null,
+      "street": "test test",
+      "city": "Cairo",
+      "state": "test",
+      "country": "EG",
+      "postal_code": "12814",
+      "mobile_wallet_number": null
+    },
+    "external_action_message": [],
+    "provider_transaction_fields": {
+      "stripe_intent_id": null,
+      "stripe_customer_id": "cus_Rr3ZFStIPYmHrA",
+      "stripe_method_id": "pm_1QxLSYH6E8vmpnE10KBqPr4W"
+    },
+    "provider_unique_reference": { "key": "stripe_intent_id", "value": null },
+    "operations": [
+      {
+        "id": "ZDDQyjZ",
+        "type": "purchase",
+        "status": "failed",
+        "amount": { "value": 50, "currency": "USD" },
+        "latest_status": {
+          "id": "gyG43B9",
+          "value": "failed",
+          "code": "7040",
+          "provider_error_code": "test_mode_live_card",
+          "provider_error_message": "Your card was declined. Your request used a real card while testing. For a list of valid test cards, visit: https://stripe.com/docs/testing.",
+          "message": "Configuration issue at the payment gateway or provider.",
+          "localized_message": "Configuration issue at the payment gateway or provider."
+        },
+        "statuses": [
+          {
+            "id": "ZB68pkZ",
+            "value": "pending",
+            "code": "8000",
+            "provider_error_code": null,
+            "provider_error_message": null,
+            "message": "Pending",
+            "localized_message": "Pending",
+            "created": "2025-02-28 04:46:01.405608+00:00"
+          },
+          {
+            "id": "gyG43B9",
+            "value": "failed",
+            "code": "7040",
+            "provider_error_code": "test_mode_live_card",
+            "provider_error_message": "Your card was declined. Your request used a real card while testing. For a list of valid test cards, visit: https://stripe.com/docs/testing.",
+            "message": "Configuration issue at the payment gateway or provider.",
+            "localized_message": "Configuration issue at the payment gateway or provider.",
+            "created": "2025-02-28 04:46:04.396003+00:00"
+          }
+        ],
+        "refund_type": null,
+        "custom_fields": null,
+        "extra": {},
+        "rrn": null,
+        "arn": null,
+        "authorization_code": null
+      }
+    ],
+    "fraud_decision": {
+      "provider": "ZprJjBL",
+      "decision_details": { "decision": "APPROVED" }
+    },
+    "device_check": null,
+    "custom_message": "",
+    "method": {
+      "id": "XZOmAL8",
+      "display_name": "Stripe - Card",
+      "service_provider": { "id": "Vg6zDgR", "display_name": "Stripe" }
+    },
+    "payment_method_details": {
+      "type": "CARD",
+      "data": null,
+      "provider_data": null
+    },
+    "authentication_data": null,
+    "paying_card_token": null,
+    "authorization_code": null,
+    "merchant_reference": "test_reference_fdcdc",
+    "shipping_data": null,
+    "trx_rrn": null,
+    "ip": {
+      "ip_address": "196.150.203.149",
+      "country": { "iso_code": "EG", "name": "Egypt" }
+    },
+    "full_capture": false
+  },
+  "api_version": "1.1"
+}
