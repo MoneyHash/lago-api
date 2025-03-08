@@ -3,6 +3,9 @@
 module PaymentProviders
   class MoneyhashProvider < BaseProvider
     SUCCESS_REDIRECT_URL = "https://moneyhash.io/"
+    PROCESSING_STATUSES = %w[PENDING PENDING_AUTHENTICATION UNPROCESSED]
+    SUCCESS_STATUSES = %w[SUCCESSFUL PROCESSED].freeze
+    FAILED_STATUSES = %w[FAILED].freeze
 
     validates :api_key, presence: true
     validates :flow_id, presence: true, length: {maximum: 20}
