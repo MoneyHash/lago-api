@@ -6,7 +6,7 @@ module PaymentProviders
       class CreateService < BaseService
         include ::Customers::PaymentProviderFinder
 
-        def initialize(payment:)
+        def initialize(payment:, reference:, metadata:)
           @payment = payment
           @invoice = payment.payable
           @provider_customer = payment.payment_provider_customer
@@ -22,7 +22,8 @@ module PaymentProviders
             moneyhash_result = create_moneyhash_payment
 
             payment.provider_payment_id = moneyhash_result.dig("data", "id")
-            payment.status = moneyhash_result.dig("data", "status")
+            Rails.logger.debug(moneyhash_result)
+            payment.status = moneyhash_result.dig("data", "status") || "pending"
             payment.payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
             payment.save!
 
@@ -38,8 +39,6 @@ module PaymentProviders
         private
 
         attr_reader :payment, :invoice, :provider_customer
-
-        delegate :payment_provider, :customer, to: :provider_customer
 
         def create_moneyhash_payment
           payment_params = {
@@ -58,6 +57,7 @@ module PaymentProviders
             recurring_data: {
               agreement_id: invoice.subscriptions&.first&.external_id
             },
+            card_token: provider_customer.payment_method_id,
             custom_fields: {
               lago_mit: true,
               lago_customer_id: invoice&.customer&.id,
@@ -65,7 +65,7 @@ module PaymentProviders
               lago_payable_type: invoice.class.name,
               lago_plan_id: invoice.subscriptions&.first&.plan_id,
               lago_subscription_external_id: invoice.subscriptions&.first&.external_id,
-              lago_organization_id: organization&.id,
+              # lago_organization_id: organization&.id, # TODO:
               lago_mh_service: "PaymentProviders::Moneyhash::Payments::CreateService"
             }
           }
@@ -88,17 +88,17 @@ module PaymentProviders
         end
 
         def moneyhash_payment_provider
-          @moneyhash_payment_provider ||= payment_provider(customer)
+          @moneyhash_payment_provider ||= payment_provider(provider_customer.customer)
         end
 
         def prepare_failed_result(error, reraise: false)
-          result.error_message = error.message
-          result.error_code = error.code
+          result.error_message = error.error_body
+          result.error_code = error.error_code
           result.reraise = reraise
 
           payment.update!(status: :failed, payable_payment_status: :failed)
 
-          result.service_failure!(code: "moneyhash_error", message: "#{error.code}: #{error.message}")
+          result.service_failure!(code: "moneyhash_error", message: "#{error.error_code}: #{error.error_body}")
         end
       end
     end

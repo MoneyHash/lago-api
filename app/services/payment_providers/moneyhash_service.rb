@@ -71,6 +71,7 @@ module PaymentProviders
 
     def event_handlers
       {
+        "intent.processed" => method(:handle_intent_event),
         "intent.time_expired" => method(:handle_intent_event),
         "transaction.purchase.failed" => method(:handle_transaction_event),
         "transaction.purchase.pending" => method(:handle_transaction_event),
@@ -83,10 +84,11 @@ module PaymentProviders
 
     def handle_intent_event
       payment_statuses = {
-        "intent.time_expired": "failed"
+        "intent.time_expired": "failed",
+        "intent.processed": "succeeded"
       }
       case @event_code
-      when "intent.time_expired"
+      when "intent.time_expired", "intent.processed"
         payment_service_klass(@event_json)
           .new.update_payment_status(
             organization_id: @organization.id,

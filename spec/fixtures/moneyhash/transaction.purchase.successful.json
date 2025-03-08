@@ -1,0 +1,145 @@
+{
+  "type": "transaction.purchase.successful",
+  "status_id": "gEKVDv9",
+  "operation_id": "ZAb1xQ9",
+  "intent": {
+    "id": "L5OV6nZ",
+    "created": "2025-03-05 08:58:41.271537+00:00",
+    "custom_fields": null,
+    "split_data": [],
+    "custom_form_answers": null,
+    "amount": { "value": 50, "currency": "USD" },
+    "flow_data": null,
+    "payment_status": {
+      "status": "CAPTURED",
+      "balances": {
+        "total_authorized": "50.00",
+        "total_voided": 0,
+        "available_to_void": "0",
+        "total_captured": "50.00",
+        "available_to_capture": "0",
+        "total_refunded": 0,
+        "available_to_refund": "50.00"
+      }
+    }
+  },
+  "account": { "id": "lgaxEBL" },
+  "transaction": {
+    "type": "payment",
+    "id": "af064e55-42b6-4483-b0c3-2ec2f3a43855",
+    "created": "2025-03-05 08:58:48.038932+00:00",
+    "status": "purchase.successful",
+    "billing_data": {
+      "name": null,
+      "first_name": "Recent",
+      "last_name": "Customer",
+      "email": "recent@mh.io",
+      "phone_number": "+201087654321",
+      "address": null,
+      "address1": null,
+      "apartment": null,
+      "floor": null,
+      "building": null,
+      "street": null,
+      "city": null,
+      "state": null,
+      "country": null,
+      "postal_code": null,
+      "mobile_wallet_number": null
+    },
+    "external_action_message": [],
+    "provider_transaction_fields": {
+      "checkoutdotcom_payment_id": null,
+      "checkoutdotcom_payment_auth_code": null,
+      "checkoutdotcom_increase_auth_code": null,
+      "checkoutdotcom_increase_auth_action_id": null,
+      "checkoutdotcom_acquirer_reference_number": null,
+      "checkoutdotcom_processing_object": null,
+      "checkoutdotcom_operation_fields": {}
+    },
+    "provider_unique_reference": {
+      "key": "checkoutdotcom_payment_id",
+      "value": null
+    },
+    "operations": [
+      {
+        "id": "ZAb1xQ9",
+        "type": "purchase",
+        "status": "successful",
+        "amount": { "value": 50, "currency": "USD" },
+        "latest_status": {
+          "id": "gEKVDv9",
+          "value": "successful",
+          "code": "6000",
+          "provider_error_code": null,
+          "provider_error_message": null,
+          "message": "Successful",
+          "localized_message": "Successful"
+        },
+        "statuses": [
+          {
+            "id": "941r3qL",
+            "value": "pending",
+            "code": "8000",
+            "provider_error_code": null,
+            "provider_error_message": null,
+            "message": "Pending",
+            "localized_message": "Pending",
+            "created": "2025-03-05 08:58:48.077951+00:00"
+          },
+          {
+            "id": "gEKVDv9",
+            "value": "successful",
+            "code": "6000",
+            "provider_error_code": null,
+            "provider_error_message": null,
+            "message": "Successful",
+            "localized_message": "Successful",
+            "created": "2025-03-05 08:58:53.035363+00:00"
+          }
+        ],
+        "refund_type": null,
+        "custom_fields": null,
+        "extra": {},
+        "rrn": null,
+        "arn": null,
+        "authorization_code": null
+      }
+    ],
+    "fraud_decision": null,
+    "device_check": null,
+    "custom_message": "",
+    "method": {
+      "id": "gqYGvEg",
+      "display_name": "CheckoutDotCom - Card",
+      "service_provider": { "id": "gQJnWwZ", "display_name": "Checkout.com" }
+    },
+    "payment_method_details": {
+      "type": "CARD",
+      "data": {
+        "bin": "111100",
+        "type": null,
+        "brand": null,
+        "issuer": null,
+        "last_4": "0000",
+        "country": null,
+        "expiry_year": "26",
+        "expiry_month": "02",
+        "card_holder_name": "Kevin Smith"
+      },
+      "provider_data": null
+    },
+    "authentication_data": null,
+    "paying_card_token": null,
+    "authorization_code": null,
+    "merchant_reference": null,
+    "shipping_data": null,
+    "trx_rrn": null,
+    "ip": {
+      "ip_address": "196.150.203.149",
+      "country": { "iso_code": "EG", "name": "Egypt" }
+    },
+    "full_capture": true
+  },
+  "api_version": "1.1"
+}
