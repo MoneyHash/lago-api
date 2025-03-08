@@ -32,6 +32,10 @@ module PaymentProviders
         :test
       end
     end
+
+    def payment_type
+      "moneyhash"
+    end
   end
 end
 
