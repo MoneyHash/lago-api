@@ -11,28 +11,11 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
   # Intent
   # handle event - intent.processed <-
   # handle event - intent.time_expired
-
-  # Transaction
-  # handle event - transaction.purchase.failed
-  # handle event - transaction.purchase.pending_authentication
-  # handle event - transaction.purchase.successful
-
-  # Card Token
-  # handle event - card_token.created
-  # handle event - card_token.updated
-  # handle event - card_token.deleted
-  describe "#handle_event" do
+  describe "#handle_intent_event" do
     let(:intent_processed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.processed.json"))) }
-    let(:transaction_successful_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.successful.json"))) }
-    let(:transaction_failed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.failed.json"))) }
-
     # intent payment & invoice
     let(:payment) { create(:payment, provider_payment_id: intent_processed_event_json.dig("data", "intent_id"), payable: invoice) }
     let(:invoice) { create(:invoice, organization:, customer:) }
-
-    # transaction payment & invoice
-    let(:transaction_payment) { create(:payment, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: transaction_invoice) }
-    let(:transaction_invoice) { create(:invoice, organization:, customer:) }
 
     it "handles intent.processed event" do
       intent_processed_event_json["data"]["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
@@ -45,6 +28,19 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       expect(payment.status).to eq("succeeded")
       expect(payment.payable.payment_status).to eq("succeeded")
     end
+  end
+
+  # Transaction
+  # handle event - transaction.purchase.failed
+  # handle event - transaction.purchase.pending_authentication
+  # handle event - transaction.purchase.successful
+  describe "#handle_transaction_event" do
+    let(:transaction_successful_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.successful.json"))) }
+    let(:transaction_failed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.failed.json"))) }
+
+    # transaction payment & invoice
+    let(:transaction_payment) { create(:payment, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: transaction_invoice) }
+    let(:transaction_invoice) { create(:invoice, organization:, customer:) }
 
     # Buggy Code, need to fix first
     # it "handles transaction.purchase.successful event" do
@@ -61,7 +57,13 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
     #   expect(payment.status).to eq("succeeded")
     #   expect(payment.payable.payment_status).to eq("succeeded")
     # end
+  end
 
+  # Card Token
+  # handle event - card_token.created <-
+  # handle event - card_token.updated
+  # handle event - card_token.deleted
+  describe "#handle_card_event" do
     it "handles card_token.created event" do
       card_token_created_event_json = JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/card_token.created.json")))
       card_token_created_event_json["data"]["card_token"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
