@@ -61,19 +61,32 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
 
   # Card Token
   # handle event - card_token.created <-
-  # handle event - card_token.updated
+  # handle event - card_token.updated <-
   # handle event - card_token.deleted
   describe "#handle_card_event" do
+    before do
+      moneyhash_provider
+      moneyhash_customer
+    end
+
     it "handles card_token.created event" do
       card_token_created_event_json = JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/card_token.created.json")))
       card_token_created_event_json["data"]["card_token"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
 
-      moneyhash_provider
-      moneyhash_customer
       result = described_class.new.handle_event(organization:, event_json: card_token_created_event_json)
       expect(result).to be_success
       moneyhash_customer.reload
       expect(moneyhash_customer.payment_method_id).to eq(card_token_created_event_json.dig("data", "card_token", "id"))
+    end
+
+    it "handles card_token.updated event" do
+      card_token_updated_event_json = JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/card_token.updated.json")))
+      card_token_updated_event_json["data"]["card_token"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
+
+      result = described_class.new.handle_event(organization:, event_json: card_token_updated_event_json)
+      expect(result).to be_success
+      moneyhash_customer.reload
+      expect(moneyhash_customer.payment_method_id).to eq(card_token_updated_event_json.dig("data", "card_token", "id"))
     end
   end
 end
