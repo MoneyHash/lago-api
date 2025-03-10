@@ -2,33 +2,51 @@
   "type": "intent.processed",
   "intent_type": "PAYMENT",
   "data": {
-    "intent_id": "L5OV6nZ",
+    "intent_id": "gQ0y8bL",
     "intent": {
-      "id": "L5OV6nZ",
+      "id": "gQ0y8bL",
       "status": "PROCESSED",
-      "amount": 50,
+      "amount": 7.1,
       "amount_currency": "USD",
       "type": "Payin",
       "account": "lgaxEBL",
-      "custom_fields": null,
+      "custom_fields": {
+        "lago_mit": false,
+        "lago_plan_id": "de95fd5d-3349-4439-a5d0-18b42b8551d1",
+        "lago_mh_service": "Invoices::Payments::MoneyhashService",
+        "lago_payable_id": "23fd1f3c-922c-4928-b40b-c8a31e4d6664",
+        "lago_customer_id": "53c14b65-3406-4b1b-9d49-77fb389ee92e",
+        "lago_payable_type": "Invoice",
+        "lago_organization_id": "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414",
+        "lago_subscription_external_id": "69f64026-69eb-4836-b1bd-9323d9f7d892"
+      },
       "billing_data": {
-        "first_name": "Recent",
+        "first_name": "Legal00x3",
         "last_name": "Customer",
-        "email": "recent@mh.io",
+        "email": "test@mh.io",
         "phone_number": "+201087654321"
       },
       "active_transaction": {
-        "id": "af064e55-42b6-4483-b0c3-2ec2f3a43855",
-        "custom_fields": null,
-        "created": "2025-03-05T08:58:48.038932Z",
+        "id": "682ec965-6aed-4689-834b-06d7ddaf4d86",
+        "custom_fields": {
+          "lago_mit": false,
+          "lago_plan_id": "de95fd5d-3349-4439-a5d0-18b42b8551d1",
+          "lago_mh_service": "Invoices::Payments::MoneyhashService",
+          "lago_payable_id": "23fd1f3c-922c-4928-b40b-c8a31e4d6664",
+          "lago_customer_id": "53c14b65-3406-4b1b-9d49-77fb389ee92e",
+          "lago_payable_type": "Invoice",
+          "lago_organization_id": "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414",
+          "lago_subscription_external_id": "69f64026-69eb-4836-b1bd-9323d9f7d892"
+        },
+        "created": "2025-03-10T17:48:30.414948Z",
         "status": "SUCCESSFUL",
-        "amount": "50.00",
+        "amount": "7.10",
         "amount_currency": "USD",
         "billing_data": {
-          "name": null,
-          "first_name": "Recent",
+          "name": "Legal00x3 Customer",
+          "first_name": "Legal00x3",
           "last_name": "Customer",
-          "email": "recent@mh.io",
+          "email": "test@mh.io",
           "phone_number": "+201087654321",
           "address": null,
           "address1": null,
@@ -69,12 +87,15 @@
         },
         "operations": [
           {
-            "id": "ZAb1xQ9",
+            "id": "gEBdKvZ",
             "type": "purchase",
             "status": "successful",
-            "amount": { "value": 50, "currency": "USD" },
+            "amount": {
+              "value": 7.1,
+              "currency": "USD"
+            },
             "latest_status": {
-              "id": "gEKVDv9",
+              "id": "ZODwVv9",
               "value": "successful",
               "code": "6000",
               "provider_error_code": null,
@@ -84,24 +105,24 @@
             },
             "statuses": [
               {
-                "id": "941r3qL",
+                "id": "Ln2kbJL",
                 "value": "pending",
                 "code": "8000",
                 "provider_error_code": null,
                 "provider_error_message": null,
                 "message": "Pending",
                 "localized_message": "Pending",
-                "created": "2025-03-05 08:58:48.077951+00:00"
+                "created": "2025-03-10 17:48:30.485369+00:00"
               },
               {
-                "id": "gEKVDv9",
+                "id": "ZODwVv9",
                 "value": "successful",
                 "code": "6000",
                 "provider_error_code": null,
                 "provider_error_message": null,
                 "message": "Successful",
                 "localized_message": "Successful",
-                "created": "2025-03-05 08:58:53.035363+00:00"
+                "created": "2025-03-10 17:48:30.614318+00:00"
               }
             ],
             "refund_type": null,
@@ -114,21 +135,46 @@
         ],
         "fraud_decision": null,
         "device_check": null,
-        "paying_card_token": null,
+        "paying_card_token": {
+          "id": "419cb5f7-20fc-4571-a64d-4a64f0a0412f",
+          "hashid": "gMRXKaZ",
+          "brand": "Visa",
+          "card_holder_name": "Kevin Smith",
+          "bin": "111100",
+          "last_4": "0000",
+          "issuer": "test",
+          "expiry_month": "02",
+          "expiry_year": "26",
+          "country": null,
+          "type": null,
+          "custom_fields": {
+            "lago_mit": false,
+            "lago_plan_id": "de95fd5d-3349-4439-a5d0-18b42b8551d1",
+            "lago_mh_service": "Invoices::Payments::MoneyhashService",
+            "lago_payable_id": "23fd1f3c-922c-4928-b40b-c8a31e4d6664",
+            "lago_customer_id": "53c14b65-3406-4b1b-9d49-77fb389ee92e",
+            "lago_payable_type": "Invoice",
+            "lago_organization_id": "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414",
+            "lago_subscription_external_id": "69f64026-69eb-4836-b1bd-9323d9f7d892"
+          },
+          "provider_token_data": [
+            {
+              "last_4": "0000",
+              "service_provider_id": "gQJnWwZ",
+              "pay_in_method": "gqYGvEg",
+              "provider_specific_data": {
+                "token_id": "test_token"
+              }
+            }
+          ],
+          "requires_cvv": true,
+          "fingerprint": "d795b7befe90eaf9d91a9d563f446487c69f06c3a35374289a385d40709a82f0b14ebe7c24139e19aaca6f3661ec1a3715d92e51a5b099880acb66b39a621dc5",
+          "vault_region": "default"
+        },
         "authorization_code": null,
         "payment_method_details": {
           "type": "CARD",
-          "data": {
-            "bin": "111100",
-            "type": null,
-            "brand": null,
-            "issuer": null,
-            "last_4": "0000",
-            "country": null,
-            "expiry_year": "26",
-            "expiry_month": "02",
-            "card_holder_name": "Kevin Smith"
-          },
+          "data": null,
           "provider_data": null
         },
         "merchant_reference": null,
@@ -142,24 +188,36 @@
         "ip": {
           "ip": {
             "ip_address": "196.150.203.149",
-            "country": { "iso_code": "EG", "name": "Egypt" }
+            "country": {
+              "iso_code": "EG",
+              "name": "Egypt"
+            }
           }
         }
       },
       "transactions_count": 1,
       "transactions_history": [
         {
-          "id": "af064e55-42b6-4483-b0c3-2ec2f3a43855",
-          "custom_fields": null,
-          "created": "2025-03-05T08:58:48.038932Z",
+          "id": "682ec965-6aed-4689-834b-06d7ddaf4d86",
+          "custom_fields": {
+            "lago_mit": false,
+            "lago_plan_id": "de95fd5d-3349-4439-a5d0-18b42b8551d1",
+            "lago_mh_service": "Invoices::Payments::MoneyhashService",
+            "lago_payable_id": "23fd1f3c-922c-4928-b40b-c8a31e4d6664",
+            "lago_customer_id": "53c14b65-3406-4b1b-9d49-77fb389ee92e",
+            "lago_payable_type": "Invoice",
+            "lago_organization_id": "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414",
+            "lago_subscription_external_id": "69f64026-69eb-4836-b1bd-9323d9f7d892"
+          },
+          "created": "2025-03-10T17:48:30.414948Z",
           "status": "SUCCESSFUL",
-          "amount": "50.00",
+          "amount": "7.10",
           "amount_currency": "USD",
           "billing_data": {
-            "name": null,
-            "first_name": "Recent",
+            "name": "Legal00x3 Customer",
+            "first_name": "Legal00x3",
             "last_name": "Customer",
-            "email": "recent@mh.io",
+            "email": "test@mh.io",
             "phone_number": "+201087654321",
             "address": null,
             "address1": null,
@@ -200,12 +258,15 @@
           },
           "operations": [
             {
-              "id": "ZAb1xQ9",
+              "id": "gEBdKvZ",
               "type": "purchase",
               "status": "successful",
-              "amount": { "value": 50, "currency": "USD" },
+              "amount": {
+                "value": 7.1,
+                "currency": "USD"
+              },
               "latest_status": {
-                "id": "gEKVDv9",
+                "id": "ZODwVv9",
                 "value": "successful",
                 "code": "6000",
                 "provider_error_code": null,
@@ -215,24 +276,24 @@
               },
               "statuses": [
                 {
-                  "id": "941r3qL",
+                  "id": "Ln2kbJL",
                   "value": "pending",
                   "code": "8000",
                   "provider_error_code": null,
                   "provider_error_message": null,
                   "message": "Pending",
                   "localized_message": "Pending",
-                  "created": "2025-03-05 08:58:48.077951+00:00"
+                  "created": "2025-03-10 17:48:30.485369+00:00"
                 },
                 {
-                  "id": "gEKVDv9",
+                  "id": "ZODwVv9",
                   "value": "successful",
                   "code": "6000",
                   "provider_error_code": null,
                   "provider_error_message": null,
                   "message": "Successful",
                   "localized_message": "Successful",
-                  "created": "2025-03-05 08:58:53.035363+00:00"
+                  "created": "2025-03-10 17:48:30.614318+00:00"
                 }
               ],
               "refund_type": null,
@@ -245,21 +306,46 @@
           ],
           "fraud_decision": null,
           "device_check": null,
-          "paying_card_token": null,
+          "paying_card_token": {
+            "id": "419cb5f7-20fc-4571-a64d-4a64f0a0412f",
+            "hashid": "gMRXKaZ",
+            "brand": "Visa",
+            "card_holder_name": "Kevin Smith",
+            "bin": "111100",
+            "last_4": "0000",
+            "issuer": "test",
+            "expiry_month": "02",
+            "expiry_year": "26",
+            "country": null,
+            "type": null,
+            "custom_fields": {
+              "lago_mit": false,
+              "lago_plan_id": "de95fd5d-3349-4439-a5d0-18b42b8551d1",
+              "lago_mh_service": "Invoices::Payments::MoneyhashService",
+              "lago_payable_id": "23fd1f3c-922c-4928-b40b-c8a31e4d6664",
+              "lago_customer_id": "53c14b65-3406-4b1b-9d49-77fb389ee92e",
+              "lago_payable_type": "Invoice",
+              "lago_organization_id": "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414",
+              "lago_subscription_external_id": "69f64026-69eb-4836-b1bd-9323d9f7d892"
+            },
+            "provider_token_data": [
+              {
+                "last_4": "0000",
+                "service_provider_id": "gQJnWwZ",
+                "pay_in_method": "gqYGvEg",
+                "provider_specific_data": {
+                  "token_id": "test_token"
+                }
+              }
+            ],
+            "requires_cvv": true,
+            "fingerprint": "d795b7befe90eaf9d91a9d563f446487c69f06c3a35374289a385d40709a82f0b14ebe7c24139e19aaca6f3661ec1a3715d92e51a5b099880acb66b39a621dc5",
+            "vault_region": "default"
+          },
           "authorization_code": null,
           "payment_method_details": {
             "type": "CARD",
-            "data": {
-              "bin": "111100",
-              "type": null,
-              "brand": null,
-              "issuer": null,
-              "last_4": "0000",
-              "country": null,
-              "expiry_year": "26",
-              "expiry_month": "02",
-              "card_holder_name": "Kevin Smith"
-            },
+            "data": null,
             "provider_data": null
           },
           "merchant_reference": null,
@@ -273,31 +359,44 @@
           "ip": {
             "ip": {
               "ip_address": "196.150.203.149",
-              "country": { "iso_code": "EG", "name": "Egypt" }
+              "country": {
+                "iso_code": "EG",
+                "name": "Egypt"
+              }
             }
           }
         }
       ],
-      "method": { "display_name": "CheckoutDotCom - Card", "id": "gqYGvEg" },
-      "flow": null,
-      "flow_data": null,
+      "method": {
+        "display_name": "CheckoutDotCom - Card",
+        "id": "gqYGvEg"
+      },
+      "flow": "xgXlXgX",
+      "flow_data": {
+        "id": "xgXlXgX",
+        "version": 1,
+        "sequence": null
+      },
       "is_live": false,
-      "created": "2025-03-05T08:58:41.271537Z",
+      "created": "2025-03-10T17:48:18.654822Z",
       "merchant_reference": null,
       "ip": {
         "ip_address": "196.150.203.149",
-        "country": { "iso_code": "EG", "name": "Egypt" }
+        "country": {
+          "iso_code": "EG",
+          "name": "Egypt"
+        }
       },
       "payment_status": {
         "status": "CAPTURED",
         "balances": {
-          "total_authorized": "50.00",
-          "total_voided": 0,
-          "available_to_void": "0",
-          "total_captured": "50.00",
-          "available_to_capture": "0",
-          "total_refunded": 0,
-          "available_to_refund": "50.00"
+          "total_authorized": "7.10",
+          "total_voided": "0.00",
+          "available_to_void": "0.00",
+          "total_captured": "7.10",
+          "available_to_capture": "0.00",
+          "total_refunded": "0.00",
+          "available_to_refund": "7.10"
         }
       }
     }
