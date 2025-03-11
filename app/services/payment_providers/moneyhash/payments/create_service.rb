@@ -22,7 +22,6 @@ module PaymentProviders
             moneyhash_result = create_moneyhash_payment
 
             payment.provider_payment_id = moneyhash_result.dig("data", "id")
-            Rails.logger.debug(moneyhash_result)
             payment.status = moneyhash_result.dig("data", "status") || "pending"
             payment.payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
             payment.save!
