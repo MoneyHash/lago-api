@@ -33,7 +33,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
   # Transaction
   # handle event - transaction.purchase.successful <-
   # handle event - transaction.purchase.pending_authentication
-  # handle event - transaction.purchase.failed
+  # handle event - transaction.purchase.failed <-
   describe "#handle_transaction_event" do
     let(:transaction_successful_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.successful.json"))) }
     let(:transaction_failed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.failed.json"))) }
@@ -42,19 +42,34 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
     let(:payment) { create(:payment, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: invoice) }
     let(:invoice) { create(:invoice, organization:, customer:) }
 
-    it "handles transaction.purchase.successful event" do
+    before do
+      moneyhash_provider
+      moneyhash_customer
+      payment
+
       transaction_successful_event_json["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
       transaction_successful_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice.id
       transaction_successful_event_json["intent"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
 
-      moneyhash_provider
-      moneyhash_customer
-      payment
+      transaction_failed_event_json["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
+      transaction_failed_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice.id
+      transaction_failed_event_json["intent"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
+    end
+
+    it "handles transaction.purchase.successful event" do
       result = described_class.new.handle_event(organization:, event_json: transaction_successful_event_json)
       payment.reload
       expect(result).to be_success
       expect(payment.status).to eq("succeeded")
       expect(payment.payable.payment_status).to eq("succeeded")
+    end
+
+    it "handles transaction.purchase.failed event" do
+      result = described_class.new.handle_event(organization:, event_json: transaction_failed_event_json)
+      payment.reload
+      expect(result).to be_success
+      expect(payment.status).to eq("pending")
+      expect(payment.payable.payment_status).to eq("failed")
     end
   end
 
