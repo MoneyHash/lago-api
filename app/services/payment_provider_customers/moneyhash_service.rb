@@ -28,10 +28,6 @@ module PaymentProviderCustomers
       )
       deliver_success_webhook
       result.moneyhash_customer = moneyhash_customer
-      # TODO: Remove checkout_url generation as we don't need to generate a checkout url for moneyhash
-      checkout_url_result = generate_checkout_url
-      return result unless checkout_url_result.success?
-      result.checkout_url = checkout_url_result.checkout_url
       result
     end
 
@@ -40,27 +36,7 @@ module PaymentProviderCustomers
     end
 
     def generate_checkout_url(send_webhook: true)
-      return result.not_found_failure!(resource: "moneyhash_payment_provider") unless moneyhash_payment_provider
-
-      response = payment_url_client.post_with_response(payment_url_params, headers)
-      moneyhash_result = JSON.parse(response.body)
-
-      return result unless moneyhash_result
-
-      moneyhash_result_data = moneyhash_result["data"]
-      result.checkout_url = moneyhash_result_data["embed_url"]
-
-      if send_webhook
-        SendWebhookJob.perform_now(
-          "customer.checkout_url_generated",
-          customer,
-          checkout_url: result.checkout_url
-        )
-      end
-      result
-    rescue LagoHttpClient::HttpError => e
-      deliver_error_webhook(e)
-      result.service_failure!(code: e.error_code, message: e.message)
+      result.not_allowed_failure!(code: "feature_not_supported")
     end
 
     def update_payment_method(organization_id:, customer_id:, payment_method_id:, metadata: {})
@@ -86,14 +62,6 @@ module PaymentProviderCustomers
       @client || LagoHttpClient::Client.new("#{PaymentProviders::MoneyhashProvider.api_base_url}/api/v1.1/customers/")
     end
 
-    def payment_url_client
-      @payment_url_client || LagoHttpClient::Client.new("#{::PaymentProviders::MoneyhashProvider.api_base_url}/api/v1.1/payments/intent/")
-    end
-
-    def api_key
-      moneyhash_payment_provider.secret_key
-    end
-
     def moneyhash_payment_provider
       @moneyhash_payment_provider ||= payment_provider(customer)
     end
@@ -110,6 +78,11 @@ module PaymentProviderCustomers
         contact_person_name: customer&.display_name,
         company_name: customer&.legal_name
       }.compact
+
+      headers = {
+        "Content-Type" => "application/json",
+        "x-Api-Key" => moneyhash_payment_provider.api_key
+      }
 
       response = client.post_with_response(customer_params, headers)
       JSON.parse(response.body)
@@ -134,39 +107,6 @@ module PaymentProviderCustomers
         "customer.payment_provider_created",
         customer
       )
-    end
-
-    def headers
-      {
-        "Content-Type" => "application/json",
-        "x-Api-Key" => moneyhash_payment_provider.api_key
-      }
-    end
-
-    def payment_url_params
-      {
-        amount: 5,
-        amount_currency: customer.currency.presence || "USD",
-        flow_id: moneyhash_payment_provider.flow_id,
-        expires_after_seconds: 69.days.seconds.to_i,
-        billing_data: {
-          first_name: customer&.firstname,
-          last_name: customer&.lastname,
-          phone_number: customer&.phone,
-          email: customer&.email
-        },
-        customer: moneyhash_customer.provider_customer_id,
-        webhook_url: moneyhash_payment_provider.webhook_end_point,
-        merchant_initiated: false,
-        tokenize_card: true,
-        payment_type: "UNSCHEDULED",
-        custom_fields: {
-          lago_mit: false,
-          lago_customer_id: moneyhash_customer.customer_id,
-          lago_organization_id: moneyhash_customer&.customer&.organization&.id,
-          lago_mh_service: "PaymentProviderCustomers::MoneyhashService"
-        }
-      }
     end
 
     def handle_missing_customer(organization_id, metadata)
