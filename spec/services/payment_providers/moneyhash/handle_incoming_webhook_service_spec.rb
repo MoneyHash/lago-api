@@ -25,13 +25,14 @@ RSpec.describe PaymentProviders::Moneyhash::HandleIncomingWebhookService, type: 
       allow(PaymentProviders::FindService).to receive(:call)
         .with(organization_id:, code: moneyhash_provider.code, payment_provider_type: "moneyhash")
         .and_return(payment_provider_result)
+      allow(PaymentProviders::Moneyhash::HandleEventJob).to receive(:perform_later)
     end
 
     it "triggers Moneyhash::HandleEventJob" do
-      expect(PaymentProviders::Moneyhash::HandleEventJob).to receive(:perform_later)
-        .with(organization:, event_json: body)
-
       webhook_service.call
+
+      expect(PaymentProviders::Moneyhash::HandleEventJob).to have_received(:perform_later)
+        .with(organization:, event_json: body)
     end
   end
 end
