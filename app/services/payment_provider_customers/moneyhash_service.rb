@@ -54,7 +54,7 @@ module PaymentProviderCustomers
 
     private
 
-    attr_accessor :moneyhash_customer
+    attr_accessor :moneyhash_customer, :customer
 
     delegate :customer, to: :moneyhash_customer
 
@@ -75,8 +75,14 @@ module PaymentProviderCustomers
         phone_number: customer&.phone,
         tax_id: customer&.tax_identification_number,
         address: [customer&.address_line1, customer&.address_line2].compact.join(" "),
-        contact_person_name: customer&.display_name,
-        company_name: customer&.legal_name
+        contact_person_name: customer&.display_name.presence,
+        company_name: customer&.legal_name,
+        custom_fields: {
+          lago_customer_id: moneyhash_customer.customer_id,
+          lago_customer_external_id: moneyhash_customer.customer&.external_id,
+          lago_organization_id: moneyhash_customer&.customer&.organization&.id,
+          lago_mh_service: "PaymentProviderCustomers::MoneyhashService"
+        }
       }.compact
 
       headers = {
