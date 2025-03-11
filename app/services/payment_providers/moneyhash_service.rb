@@ -7,7 +7,7 @@ module PaymentProviders
     FAILED_STATUSES = %w[FAILED].freeze
 
     INTENT_WEBHOOKS_EVENTS = %w[intent.processed intent.time_expired].freeze
-    TRANSACTION_WEBHOOKS_EVENTS = %w[transaction.purchase.failed transaction.purchase.pending transaction.purchase.successful].freeze
+    TRANSACTION_WEBHOOKS_EVENTS = %w[transaction.purchase.failed transaction.purchase.pending_authentication transaction.purchase.successful].freeze
     CARD_WEBHOOKS_EVENTS = %w[card_token.created card_token.updated card_token.deleted].freeze
 
     ALLOWED_WEBHOOK_EVENTS = (INTENT_WEBHOOKS_EVENTS + TRANSACTION_WEBHOOKS_EVENTS + CARD_WEBHOOKS_EVENTS).freeze
@@ -74,7 +74,7 @@ module PaymentProviders
         "intent.processed" => method(:handle_intent_event),
         "intent.time_expired" => method(:handle_intent_event),
         "transaction.purchase.failed" => method(:handle_transaction_event),
-        "transaction.purchase.pending" => method(:handle_transaction_event),
+        "transaction.purchase.pending_authentication" => method(:handle_transaction_event),
         "transaction.purchase.successful" => method(:handle_transaction_event),
         "card_token.created" => method(:handle_card_event),
         "card_token.updated" => method(:handle_card_event),
@@ -102,11 +102,11 @@ module PaymentProviders
     def handle_transaction_event
       payment_statuses = {
         "transaction.purchase.failed": "failed",
-        "transaction.purchase.pending": "processing",
+        "transaction.purchase.pending_authentication": "processing",
         "transaction.purchase.successful": "succeeded"
       }
       case @event_code
-      when "transaction.purchase.failed", "transaction.purchase.pending", "transaction.purchase.successful"
+      when "transaction.purchase.failed", "transaction.purchase.pending_authentication", "transaction.purchase.successful"
         payment_service_klass(@event_json)
           .new.update_payment_status(
             organization_id: @organization.id,
