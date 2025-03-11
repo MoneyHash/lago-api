@@ -10,23 +10,41 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
 
   # Intent
   # handle event - intent.processed <-
-  # handle event - intent.time_expired
+  # handle event - intent.time_expired <-
   describe "#handle_intent_event" do
     let(:intent_processed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.processed.json"))) }
-    # intent payment & invoice
-    let(:payment) { create(:payment, provider_payment_id: intent_processed_event_json.dig("data", "intent_id"), payable: invoice) }
-    let(:invoice) { create(:invoice, organization:, customer:) }
+    let(:intent_time_expired_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.time_expired.json"))) }
+
+    # intent processed payment & invoice
+    let(:payment_processed) { create(:payment, provider_payment_id: intent_processed_event_json.dig("data", "intent_id"), payable: invoice_processed) }
+    let(:invoice_processed) { create(:invoice, organization:, customer:) }
+
+    # intent time expired payment & invoice
+    let(:payment_time_expired) { create(:payment, provider_payment_id: intent_time_expired_event_json.dig("data", "intent_id"), payable: invoice_time_expired) }
+    let(:invoice_time_expired) { create(:invoice, organization:, customer:) }
 
     it "handles intent.processed event" do
       intent_processed_event_json["data"]["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
-      intent_processed_event_json["data"]["intent"]["custom_fields"]["lago_payable_id"] = invoice.id
+      intent_processed_event_json["data"]["intent"]["custom_fields"]["lago_payable_id"] = invoice_processed.id
 
-      payment
+      payment_processed
       result = described_class.new.handle_event(organization:, event_json: intent_processed_event_json)
-      payment.reload
+      payment_processed.reload
       expect(result).to be_success
-      expect(payment.status).to eq("succeeded")
-      expect(payment.payable.payment_status).to eq("succeeded")
+      expect(payment_processed.status).to eq("succeeded")
+      expect(payment_processed.payable.payment_status).to eq("succeeded")
+    end
+
+    it "handles intent.time_expired event" do
+      intent_time_expired_event_json["data"]["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
+      intent_time_expired_event_json["data"]["intent"]["custom_fields"]["lago_payable_id"] = invoice_time_expired.id
+
+      payment_time_expired
+      result = described_class.new.handle_event(organization:, event_json: intent_time_expired_event_json)
+      payment_time_expired.reload
+      expect(result).to be_success
+      expect(payment_time_expired.status).to eq("failed")
+      expect(payment_time_expired.payable.payment_status).to eq("failed")
     end
   end
 
