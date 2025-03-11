@@ -50,27 +50,42 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
 
   # Transaction
   # handle event - transaction.purchase.successful <-
-  # handle event - transaction.purchase.pending_authentication
+  # handle event - transaction.purchase.pending_authentication <-
   # handle event - transaction.purchase.failed <-
   describe "#handle_transaction_event" do
     let(:transaction_successful_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.successful.json"))) }
+    let(:transaction_pending_authentication_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.pending_authentication.json"))) }
     let(:transaction_failed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.failed.json"))) }
 
-    # transaction payment & invoice
+    # transaction successful payment & invoice
     let(:payment) { create(:payment, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: invoice) }
     let(:invoice) { create(:invoice, organization:, customer:) }
+
+    # transaction pending authentication payment & invoice
+    let(:payment_pending_authentication) { create(:payment, provider_payment_id: transaction_pending_authentication_event_json.dig("intent", "id"), payable: invoice_pending_authentication) }
+    let(:invoice_pending_authentication) { create(:invoice, organization:, customer:) }
+
+    # transaction failed payment & invoice
+    let(:payment_failed) { create(:payment, provider_payment_id: transaction_failed_event_json.dig("intent", "id"), payable: invoice_failed) }
+    let(:invoice_failed) { create(:invoice, organization:, customer:) }
 
     before do
       moneyhash_provider
       moneyhash_customer
       payment
+      payment_pending_authentication
+      payment_failed
 
       transaction_successful_event_json["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
       transaction_successful_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice.id
       transaction_successful_event_json["intent"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
 
+      transaction_pending_authentication_event_json["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
+      transaction_pending_authentication_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice_pending_authentication.id
+      transaction_pending_authentication_event_json["intent"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
+
       transaction_failed_event_json["intent"]["custom_fields"]["lago_payable_type"] = "Invoice"
-      transaction_failed_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice.id
+      transaction_failed_event_json["intent"]["custom_fields"]["lago_payable_id"] = invoice_failed.id
       transaction_failed_event_json["intent"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
     end
 
@@ -82,12 +97,20 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       expect(payment.payable.payment_status).to eq("succeeded")
     end
 
+    it "handles transaction.purchase.pending_authentication event" do
+      result = described_class.new.handle_event(organization:, event_json: transaction_pending_authentication_event_json)
+      payment_pending_authentication.reload
+      expect(result).to be_success
+      expect(payment_pending_authentication.status).to eq("processing")
+      expect(payment_pending_authentication.payable.payment_status).to eq("pending")
+    end
+
     it "handles transaction.purchase.failed event" do
       result = described_class.new.handle_event(organization:, event_json: transaction_failed_event_json)
-      payment.reload
+      payment_failed.reload
       expect(result).to be_success
-      expect(payment.status).to eq("pending")
-      expect(payment.payable.payment_status).to eq("failed")
+      expect(payment_failed.status).to eq("failed")
+      expect(payment_failed.payable.payment_status).to eq("failed")
     end
   end
 
