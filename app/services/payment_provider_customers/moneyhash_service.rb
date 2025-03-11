@@ -116,9 +116,11 @@ module PaymentProviderCustomers
     end
 
     def handle_missing_customer(organization_id, metadata)
+      # NOTE: this is a silent failure, we return result directly if lago_customer_id is not present or Customer is not found
       return result unless metadata&.key?("lago_customer_id")
       return result if Customer.find_by(id: metadata["lago_customer_id"], organization_id:).nil?
 
+      # fail only when certain that moneyhash customer is not found (after finding the customer)
       result.not_found_failure!(resource: "moneyhash_customer")
     end
   end

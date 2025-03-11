@@ -45,12 +45,106 @@ RSpec.describe PaymentProviderCustomers::MoneyhashService, type: :service do
       end
     end
 
-    # describe "#update" do
-    #   let(:moneyhash_customer) do
-    #     create(:moneyhash_customer, customer:, provider_customer_id:)
-    #   end
+    describe "#update" do
+      it "returns a success result" do
+        result = moneyhash_service.update
+        expect(result).to be_success
+      end
+    end
 
-    #   before { moneyhash_customer }
-    # end
+    describe "#update_payment_method" do
+      let(:custom_fields) do
+        {
+          lago_mit: false,
+          lago_mh_service: "Invoices::Payments::MoneyhashService",
+          lago_payable_id: "b4e7e786-7716-4ca1-940d-3606ef971413",
+          lago_customer_id: "36cfbd82-167d-448e-8c0b-63269347f8ac",
+          lago_payable_type: "Invoice",
+          lago_organization_id: "1f6edf98-9eb4-4baf-8c64-7c6be9d0b414"
+        }.with_indifferent_access
+      end
+
+      let(:payment_method_id) { SecureRandom.uuid }
+
+      let(:moneyhash_customer) do
+        create(:moneyhash_customer, customer:, provider_customer_id: SecureRandom.uuid)
+      end
+
+      it "updates the payment method for existing customer" do
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: customer.id,
+          payment_method_id: payment_method_id,
+          metadata: custom_fields
+        )
+        expect(result).to be_success
+        expect(moneyhash_customer.reload.payment_method_id).to eq(payment_method_id)
+      end
+
+      it "deletes the payment method for existing customer" do
+        moneyhash_customer.update(payment_method_id: SecureRandom.uuid)
+
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: customer.id,
+          payment_method_id: nil
+        )
+        expect(result).to be_success
+        expect(moneyhash_customer.reload.payment_method_id).to be_nil
+      end
+
+      it "overrides the payment method for existing customer" do
+        moneyhash_customer.update(payment_method_id: SecureRandom.uuid)
+
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: customer.id,
+          payment_method_id: payment_method_id,
+          metadata: custom_fields
+        )
+        expect(result).to be_success
+        expect(moneyhash_customer.reload.payment_method_id).to eq(payment_method_id)
+      end
+
+      it "returns result directly when lago_customer_id is not present" do
+        custom_fields.delete("lago_customer_id")
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: customer.id,
+          payment_method_id: payment_method_id,
+          metadata: custom_fields
+        )
+
+        expect(result).to be_success
+      end
+
+      it "returns result directly when customer is not found" do
+        custom_fields["lago_customer_id"] = SecureRandom.uuid
+
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: SecureRandom.uuid,
+          payment_method_id: payment_method_id,
+          metadata: custom_fields
+        )
+
+        expect(result).to be_success
+      end
+
+      it "returns a failure when moneyhash customer is not found" do
+        customer = create(:customer, organization:)
+        custom_fields["lago_customer_id"] = customer.id
+
+        result = moneyhash_service.update_payment_method(
+          organization_id: organization.id,
+          customer_id: customer.id,
+          payment_method_id: payment_method_id,
+          metadata: custom_fields
+        )
+
+        expect(result).to be_failure
+        expect(result.error.to_s).to eq("moneyhash_customer_not_found")
+      end
+    end
   end
 end
