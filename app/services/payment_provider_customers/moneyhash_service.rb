@@ -28,6 +28,7 @@ module PaymentProviderCustomers
       )
       deliver_success_webhook
       result.moneyhash_customer = moneyhash_customer
+      # TODO: Remove checkout_url generation as we don't need to generate a checkout url for moneyhash
       checkout_url_result = generate_checkout_url
       return result unless checkout_url_result.success?
       result.checkout_url = checkout_url_result.checkout_url
@@ -105,7 +106,7 @@ module PaymentProviderCustomers
         email: customer&.email,
         phone_number: customer&.phone,
         tax_id: customer&.tax_identification_number,
-        address: customer&.address_line1,
+        address: [customer&.address_line1, customer&.address_line2].compact.join(" "),
         contact_person_name: customer&.display_name,
         company_name: customer&.legal_name
       }.compact
