@@ -117,7 +117,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
   # Card Token
   # handle event - card_token.created <-
   # handle event - card_token.updated <-
-  # handle event - card_token.deleted
+  # handle event - card_token.deleted <-
   describe "#handle_card_event" do
     before do
       moneyhash_provider
@@ -142,6 +142,28 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       expect(result).to be_success
       moneyhash_customer.reload
       expect(moneyhash_customer.payment_method_id).to eq(card_token_updated_event_json.dig("data", "card_token", "id"))
+    end
+
+    it "handles card_token.deleted event" do
+      card_token_deleted_event_json = JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/card_token.deleted.json")))
+      card_token_deleted_event_json["data"]["card_token"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
+      moneyhash_customer.update!(payment_method_id: card_token_deleted_event_json.dig("data", "card_token", "id"))
+
+      result = described_class.new.handle_event(organization:, event_json: card_token_deleted_event_json)
+      expect(result).to be_success
+      moneyhash_customer.reload
+      expect(moneyhash_customer.payment_method_id).to be_nil
+    end
+
+    it "card_token.deleted event ignored if not the same card" do
+      card_token_deleted_event_json = JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/card_token.deleted.json")))
+      card_token_deleted_event_json["data"]["card_token"]["custom_fields"]["lago_customer_id"] = moneyhash_customer.customer_id
+      moneyhash_customer.update!(payment_method_id: "test_payment_id")
+
+      result = described_class.new.handle_event(organization:, event_json: card_token_deleted_event_json)
+      expect(result).to be_success
+      moneyhash_customer.reload
+      expect(moneyhash_customer.payment_method_id).to eq("test_payment_id")
     end
   end
 end

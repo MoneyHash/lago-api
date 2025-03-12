@@ -126,7 +126,7 @@ module PaymentProviders
         customer_id = @event_json.dig("data", "card_token", "custom_fields", "lago_customer_id")
         customer = PaymentProviderCustomers::MoneyhashCustomer.find_by(customer_id: customer_id)
 
-        selected_payment_method_id = (customer&.payment_method_id == payment_method_id) ? nil : payment_method_id
+        selected_payment_method_id = (customer&.payment_method_id&.present? && (customer&.payment_method_id == payment_method_id)) ? nil : customer&.payment_method_id
         service
           .update_payment_method(
             organization_id: @organization.id,
