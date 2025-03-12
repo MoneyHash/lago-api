@@ -15,6 +15,7 @@ module PaymentProviders
         end
 
         def call
+          # TODO: remove this once we have a way to handle other invoice types
           return result.fail_with_error!("Moneyhash supports automatic payments only for subscription invoices.") unless @invoice.invoice_type == "subscription"
 
           result.payment = payment
@@ -48,7 +49,7 @@ module PaymentProviders
             webhook_url: moneyhash_payment_provider.webhook_end_point,
             merchant_initiated: true,
             recurring_data: {
-              agreement_id: invoice.subscriptions&.first&.external_id
+              agreement_id: invoice.customer.id
             },
             card_token: provider_customer.payment_method_id,
             custom_fields: {
@@ -61,7 +62,9 @@ module PaymentProviders
               lago_plan_id: invoice.subscriptions&.first&.plan_id,
               lago_subscription_external_id: invoice.subscriptions&.first&.external_id,
               lago_organization_id: invoice.organization.id,
-              lago_mh_service: "PaymentProviders::Moneyhash::Payments::CreateService"
+              lago_mh_service: "PaymentProviders::Moneyhash::Payments::CreateService",
+              lago_invoice_type: invoice.invoice_type,
+              lago_request: "invoice_automatic_payment"
             }
           }
 

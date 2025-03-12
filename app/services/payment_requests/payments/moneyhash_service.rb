@@ -156,17 +156,18 @@ module PaymentRequests
           payment_type: "UNSCHEDULED",
           card_token: moneyhash_payment_method,
           recurring_data: {
-            agreement_id: payable&.invoices&.first&.subscriptions&.first&.external_id
+            agreement_id: customer.id
           },
           custom_fields: {
             lago_mit: true,
-            lago_customer_id: customer&.id,
+            lago_customer_id: customer.id,
             lago_payable_id: payable.id,
             lago_payable_type: payable.class.name,
             lago_organization_id: organization&.id,
             lago_plan_id: payable&.invoices&.first&.subscriptions&.first&.plan_id,
             lago_subscription_external_id: payable&.invoices&.first&.subscriptions&.first&.external_id,
-            lago_mh_service: "PaymentRequests::Payments::MoneyhashService"
+            lago_mh_service: "PaymentRequests::Payments::MoneyhashService",
+            lago_request: "create_payment_request"
           }
         }
         response = client.post_with_response(payment_params, headers)
