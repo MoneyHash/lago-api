@@ -46,8 +46,7 @@ module PaymentProviderCustomers
 
       return result unless moneyhash_result
 
-      moneyhash_result_data = moneyhash_result["data"]
-      result.checkout_url = "#{moneyhash_result_data["embed_url"]}?lago_request=generate_checkout_url"
+      result.checkout_url = "#{moneyhash_result["data"]["embed_url"]}?lago_request=generate_checkout_url"
 
       if send_webhook
         SendWebhookJob.perform_now(

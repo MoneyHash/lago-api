@@ -21,7 +21,7 @@ RSpec.describe PaymentProviderCustomers::MoneyhashService, type: :service do
         allow(moneyhash_service).to receive(:create_moneyhash_customer) # rubocop:disable RSpec/SubjectStub
       }
 
-      it "does not call moneyhash API" do
+      it "does not call moneyhash customers API" do
         result = moneyhash_service.create
         expect(result).to be_success
         expect(moneyhash_service).not_to have_received(:create_moneyhash_customer) # rubocop:disable RSpec/SubjectStub
@@ -30,17 +30,27 @@ RSpec.describe PaymentProviderCustomers::MoneyhashService, type: :service do
 
     context "when provider_customer_id is not present" do
       let(:moneyhash_result) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/create_customer.json"))) }
+      let(:checkout_url_response) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/checkout_url_response.json"))) }
+
+      let(:response) { instance_double(Net::HTTPOK) }
+      let(:lago_client) { instance_double(LagoHttpClient::Client) }
+      let(:endpoint) { "#{PaymentProviders::MoneyhashProvider.api_base_url}/api/v1.1/payments/intent/" }
 
       before do
         allow(moneyhash_service).to receive(:create_moneyhash_customer).and_return(moneyhash_result) # rubocop:disable RSpec/SubjectStub
         allow(moneyhash_service).to receive(:deliver_success_webhook) # rubocop:disable RSpec/SubjectStub
+
+        allow(LagoHttpClient::Client).to receive(:new).with(endpoint).and_return(lago_client)
+        allow(lago_client).to receive(:post_with_response).and_return(response)
+        allow(response).to receive(:body).and_return(checkout_url_response.to_json.to_s)
       end
 
-      it "creates the moneyhash customer and sends a success webhook" do
+      it "creates the moneyhash customer, checkout_url, and sends a success webhook" do
         result = moneyhash_service.create
         expect(result).to be_success
-        expect(moneyhash_service).to have_received(:create_moneyhash_customer) # rubocop:disable RSpec/SubjectStub
         expect(moneyhash_customer.reload.provider_customer_id).to eq(moneyhash_result["data"]["id"])
+        expect(result.checkout_url).to eq("#{checkout_url_response["data"]["embed_url"]}?lago_request=generate_checkout_url")
+        expect(moneyhash_service).to have_received(:create_moneyhash_customer) # rubocop:disable RSpec/SubjectStub
         expect(moneyhash_service).to have_received(:deliver_success_webhook) # rubocop:disable RSpec/SubjectStub
       end
     end
