@@ -15,22 +15,16 @@ module PaymentProviders
         end
 
         def call
+          return result.fail_with_error!("Moneyhash supports automatic payments only for subscription invoices.") unless @invoice.invoice_type == "subscription"
+
           result.payment = payment
 
-          if @invoice.invoice_type == "subscription"
+          moneyhash_result = create_moneyhash_payment
 
-            moneyhash_result = create_moneyhash_payment
-
-            payment.provider_payment_id = moneyhash_result.dig("data", "id")
-            payment.status = moneyhash_result.dig("data", "status") || "pending"
-            payment.payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
-            payment.save!
-
-            result.payment = payment
-
-          else
-            result.fail_with_error!("Moneyhash supports automatic payments only for subscription invoices.")
-          end
+          payment.provider_payment_id = moneyhash_result.dig("data", "id")
+          payment.status = moneyhash_result.dig("data", "status") || "pending"
+          payment.payable_payment_status = payment.payment_provider&.determine_payment_status(payment.status)
+          payment.save!
 
           result
         end
