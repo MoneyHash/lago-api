@@ -60,13 +60,20 @@ module PaymentProviders
             custom_fields: {
               lago_mit: true,
               lago_customer_id: invoice&.customer&.id,
+              lago_external_customer_id: invoice&.customer&.external_id,
+              lago_provider_customer_id: provider_customer.provider_customer_id,
               lago_payable_id: invoice.id,
               lago_payable_type: invoice.class.name,
               lago_plan_id: invoice.subscriptions&.first&.plan_id,
               lago_subscription_external_id: invoice.subscriptions&.first&.external_id,
-              # lago_organization_id: organization&.id, # TODO:
+              lago_organization_id: invoice.organization.id,
               lago_mh_service: "PaymentProviders::Moneyhash::Payments::CreateService"
             }
+          }
+
+          headers = {
+            "Content-Type" => "application/json",
+            "x-Api-Key" => moneyhash_payment_provider.api_key
           }
 
           response = client.post_with_response(payment_params, headers)
@@ -77,13 +84,6 @@ module PaymentProviders
 
         def client
           @client || LagoHttpClient::Client.new("#{::PaymentProviders::MoneyhashProvider.api_base_url}/api/v1.1/payments/intent/")
-        end
-
-        def headers
-          {
-            "Content-Type" => "application/json",
-            "x-Api-Key" => moneyhash_payment_provider.api_key
-          }
         end
 
         def moneyhash_payment_provider
