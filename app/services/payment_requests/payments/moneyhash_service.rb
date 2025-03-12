@@ -163,9 +163,9 @@ module PaymentRequests
             lago_customer_id: customer.id,
             lago_payable_id: payable.id,
             lago_payable_type: payable.class.name,
-            lago_organization_id: organization&.id,
-            lago_plan_id: payable&.invoices&.first&.subscriptions&.first&.plan_id,
-            lago_subscription_external_id: payable&.invoices&.first&.subscriptions&.first&.external_id,
+            lago_organization_id: organization.id,
+            lago_plan_id: payable&.invoices&.first&.subscriptions&.first&.plan_id.to_s,
+            lago_subscription_external_id: payable&.invoices&.first&.subscriptions&.first&.external_id.to_s,
             lago_mh_service: "PaymentRequests::Payments::MoneyhashService",
             lago_request: "create_payment_request"
           }

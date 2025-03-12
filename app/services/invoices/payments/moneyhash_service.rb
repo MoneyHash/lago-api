@@ -181,10 +181,10 @@ module Invoices
           # },
           custom_fields: {
             lago_mit: false,
-            lago_customer_id: invoice&.customer&.id,
+            lago_customer_id: invoice.customer.id,
             lago_payable_id: invoice.id,
             lago_payable_type: invoice.class.name,
-            lago_organization_id: organization&.id,
+            lago_organization_id: organization.id,
             lago_mh_service: "Invoices::Payments::MoneyhashService",
             lago_invoice_type: invoice.invoice_type,
             lago_request: "generate_payment_url"
@@ -194,8 +194,8 @@ module Invoices
         # Include subscription data for subscription invoices
         if invoice.invoice_type == "subscription"
           params[:custom_fields].merge!(
-            lago_plan_id: invoice.subscriptions&.first&.plan_id,
-            lago_subscription_external_id: invoice.subscriptions&.first&.external_id
+            lago_plan_id: invoice.subscriptions&.first&.plan_id.to_s,
+            lago_subscription_external_id: invoice.subscriptions&.first&.external_id.to_s
           )
         end
         params
