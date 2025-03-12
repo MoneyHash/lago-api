@@ -113,7 +113,7 @@ module Invoices
       end
 
       def create_payment(provider_payment_id:, metadata:)
-        @invoice = Invoice.find_by(id: metadata["lago_payable_id"])
+        @invoice ||= Invoice.find_by(id: metadata["lago_payable_id"])
         unless @invoice
           result.not_found_failure!(resource: "invoice")
           return
