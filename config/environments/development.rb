@@ -56,7 +56,6 @@ Rails.application.configure do
 
   config.hosts << "api.lago.dev"
   config.hosts << "api"
-  config.hosts << "shahwan42-lago.nue.tuns.sh"
 
   config.license_url = "http://license:3000"
 
