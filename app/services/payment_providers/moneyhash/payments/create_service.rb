@@ -44,6 +44,7 @@ module PaymentProviders
             },
             customer: provider_customer.provider_customer_id,
             webhook_url: moneyhash_payment_provider.webhook_end_point,
+            payment_type: "UNSCHEDULED",
             merchant_initiated: true,
             recurring_data: {
               agreement_id: invoice.customer.id
