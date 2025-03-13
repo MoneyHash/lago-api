@@ -5,45 +5,10 @@ module Invoices
     class MoneyhashService < BaseService
       include Customers::PaymentProviderFinder
 
-      PENDING_STATUSES = %w[processing].freeze
-      SUCCESS_STATUSES = %w[succeeded].freeze
-      FAILED_STATUSES = %w[failed].freeze
-
       def initialize(invoice = nil)
         @invoice = invoice
 
         super(nil)
-      end
-
-      def create
-        result.invoice = invoice
-        return result unless should_process_payment?
-
-        unless invoice.total_amount_cents.positive?
-          update_invoice_payment_status(payment_status: :succeeded)
-          return result
-        end
-
-        increment_payment_attempts
-
-        payment = Payment.new(
-          payable: invoice,
-          payment_provider_id: moneyhash_payment_provider.id,
-          payment_provider_customer_id: customer.moneyhash_customer.id,
-          amount_cents: invoice.total_amount_cents,
-          amount_currency: invoice.currency.upcase,
-          provider_payment_id: provider_payment_id,
-          status: status
-        )
-        payment.save!
-
-        invoice_payment_status = invoice_payment_status(payment.status)
-        update_invoice_payment_status(payment_status: invoice_payment_status)
-
-        Integrations::Aggregator::Payments::CreateJob.perform_later(payment:) if payment.should_sync_payment?
-
-        result.payment = payment
-        result
       end
 
       def update_payment_status(organization_id:, provider_payment_id:, status:, metadata: {})
@@ -55,11 +20,16 @@ module Invoices
         end
 
         return handle_missing_payment(organization_id, metadata) unless payment
+
         result.payment = payment
         result.invoice = payment.payable
         return result if payment.payable.payment_succeeded?
-        payment.update!(status:)
-        update_invoice_payment_status(payment_status: invoice_payment_status(status), processing: status == "processing")
+
+        payable_payment_status = payment.payment_provider&.determine_payment_status(status)
+        payment.update!(status:, payable_payment_status:)
+
+        update_invoice_payment_status(payment_status: payable_payment_status, processing: payable_payment_status == :processing)
+
         result
       rescue BaseService::FailedResult => e
         result.fail_with_error!(e)
@@ -73,7 +43,7 @@ module Invoices
         return result unless moneyhash_result
 
         moneyhash_result_data = moneyhash_result["data"]
-        result.payment_url = moneyhash_result_data["embed_url"]
+        result.payment_url = "#{moneyhash_result_data["embed_url"]}?lago_request=generate_payment_url"
         result
       rescue LagoHttpClient::HttpError => e
         deliver_error_webhook(e)
@@ -88,9 +58,9 @@ module Invoices
 
       def handle_missing_payment(organization_id, metadata)
         return result unless metadata&.key?("lago_payable_id")
+
         invoice = Invoice.find_by(id: metadata["lago_payable_id"], organization_id:)
         return result if invoice.nil?
-
         return result if invoice.payment_failed?
 
         result.not_found_failure!(resource: "moneyhash_payment")
@@ -149,14 +119,6 @@ module Invoices
 
       def moneyhash_payment_provider
         @moneyhash_payment_provider ||= payment_provider(customer)
-      end
-
-      def invoice_payment_status(payment_status)
-        return :pending if PENDING_STATUSES.include?(payment_status)
-        return :succeeded if SUCCESS_STATUSES.include?(payment_status)
-        return :failed if FAILED_STATUSES.include?(payment_status)
-
-        payment_status
       end
 
       def payment_url_params
