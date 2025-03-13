@@ -144,6 +144,8 @@ module Invoices
           #   agreement_id: customer.id
           # },
           custom_fields: {
+            lago_mh_connection_id: moneyhash_payment_provider.id,
+            lago_mh_connection_code: moneyhash_payment_provider.code,
             lago_mit: false,
             lago_customer_id: invoice.customer.id,
             lago_payable_id: invoice.id,

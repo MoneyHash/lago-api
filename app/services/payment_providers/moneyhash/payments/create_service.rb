@@ -52,6 +52,8 @@ module PaymentProviders
             },
             card_token: provider_customer.payment_method_id,
             custom_fields: {
+              lago_mh_connection_id: moneyhash_payment_provider.id,
+              lago_mh_connection_code: moneyhash_payment_provider.code,
               lago_mit: true,
               lago_customer_id: invoice.customer.id,
               lago_external_customer_id: invoice.customer&.external_id.to_s,

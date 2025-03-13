@@ -108,6 +108,8 @@ module PaymentProviderCustomers
         contact_person_name: customer&.display_name.presence,
         company_name: customer&.legal_name,
         custom_fields: {
+          lago_mh_connection_id: moneyhash_payment_provider.id,
+          lago_mh_connection_code: moneyhash_payment_provider.code,
           lago_customer_id: moneyhash_customer.customer_id,
           lago_customer_external_id: moneyhash_customer.customer&.external_id,
           lago_organization_id: moneyhash_customer&.customer&.organization&.id,
@@ -168,6 +170,8 @@ module PaymentProviderCustomers
           agreement_id: moneyhash_customer.customer_id
         },
         custom_fields: {
+          lago_mh_connection_id: moneyhash_payment_provider.id,
+          lago_mh_connection_code: moneyhash_payment_provider.code,
           lago_mit: false,
           lago_provider_customer_id: moneyhash_customer.provider_customer_id,
           lago_customer_id: moneyhash_customer.customer_id,
