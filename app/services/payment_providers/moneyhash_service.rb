@@ -2,14 +2,9 @@
 
 module PaymentProviders
   class MoneyhashService < BaseService
-    PENDING_STATUSES = %w[PENDING].freeze
-    SUCCESS_STATUSES = %w[PROCESSED].freeze
-    FAILED_STATUSES = %w[FAILED].freeze
-
     INTENT_WEBHOOKS_EVENTS = %w[intent.processed intent.time_expired].freeze
     TRANSACTION_WEBHOOKS_EVENTS = %w[transaction.purchase.failed transaction.purchase.pending_authentication transaction.purchase.successful].freeze
     CARD_WEBHOOKS_EVENTS = %w[card_token.created card_token.updated card_token.deleted].freeze
-
     ALLOWED_WEBHOOK_EVENTS = (INTENT_WEBHOOKS_EVENTS + TRANSACTION_WEBHOOKS_EVENTS + CARD_WEBHOOKS_EVENTS).freeze
 
     PAYMENT_SERVICE_CLASS_MAP = {
@@ -67,6 +62,18 @@ module PaymentProviders
       event_handlers.fetch(@event_code, method(:default_handler)).call
     end
 
+    def event_to_payment_status(event_code)
+      # MH's event -> MH's payment status
+      case event_code
+      when "intent.processed", "transaction.purchase.successful"
+        "SUCCESSFUL"
+      when "intent.time_expired", "transaction.purchase.failed"
+        "FAILED"
+      when "transaction.purchase.pending_authentication"
+        "PENDING"
+      end
+    end
+
     private
 
     def event_handlers
@@ -83,35 +90,24 @@ module PaymentProviders
     end
 
     def handle_intent_event
-      payment_statuses = {
-        "intent.time_expired": "failed",
-        "intent.processed": "succeeded"
-      }
-      case @event_code
-      when "intent.time_expired", "intent.processed"
+      if INTENT_WEBHOOKS_EVENTS.include?(@event_code)
         payment_service_klass(@event_json)
           .new.update_payment_status(
             organization_id: @organization.id,
             provider_payment_id: @event_json.dig("data", "intent_id"),
-            status: payment_statuses[@event_code.to_sym],
+            status: event_to_payment_status(@event_code),
             metadata: @event_json.dig("data", "intent", "custom_fields")
           ).raise_if_error!
       end
     end
 
     def handle_transaction_event
-      payment_statuses = {
-        "transaction.purchase.failed": "failed",
-        "transaction.purchase.pending_authentication": "processing",
-        "transaction.purchase.successful": "succeeded"
-      }
-      case @event_code
-      when "transaction.purchase.failed", "transaction.purchase.pending_authentication", "transaction.purchase.successful"
+      if TRANSACTION_WEBHOOKS_EVENTS.include?(@event_code)
         payment_service_klass(@event_json)
           .new.update_payment_status(
             organization_id: @organization.id,
             provider_payment_id: @event_json.dig("intent", "id"),
-            status: payment_statuses[@event_code.to_sym],
+            status: event_to_payment_status(@event_code),
             metadata: @event_json.dig("intent", "custom_fields")
           ).raise_if_error!
       end

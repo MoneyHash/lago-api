@@ -4,10 +4,20 @@ module PaymentProviders
   class MoneyhashProvider < BaseProvider
     SUCCESS_REDIRECT_URL = "https://moneyhash.io/"
 
-    # Lago -> MoneyHash statuses mapping
+    # Lago payment_status -> MoneyHash statuses mapping
     PROCESSING_STATUSES = %w[PENDING PENDING_AUTHENTICATION UNPROCESSED].freeze
     SUCCESS_STATUSES = %w[SUCCESSFUL PROCESSED].freeze
     FAILED_STATUSES = %w[FAILED].freeze
+
+    # MoneyHash payment status -> Lago payable_payment_status mapping
+    PAYABLE_PAYMENT_STATUS_MAP = {
+      "PENDING" => "pending",
+      "PENDING_AUTHENTICATION" => "pending",
+      "UNPROCESSED" => "pending",
+      "SUCCESSFUL" => "succeeded",
+      "PROCESSED" => "succeeded",
+      "FAILED" => "failed"
+    }.freeze
 
     validates :api_key, presence: true
     validates :flow_id, presence: true, length: {maximum: 20}
@@ -40,6 +50,10 @@ module PaymentProviders
 
     def payment_type
       "moneyhash"
+    end
+
+    def payable_payment_status(mh_status)
+      PAYABLE_PAYMENT_STATUS_MAP[mh_status]
     end
   end
 end

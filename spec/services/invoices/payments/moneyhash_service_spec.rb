@@ -14,7 +14,7 @@ RSpec.describe Invoices::Payments::MoneyhashService do
   let(:intent_processed_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.processed.json"))) }
   let(:provider_payment_id) { intent_processed_json.dig("data", "id") }
 
-  let(:provider_mh_service) { PaymentProviders::MoneyhashService.new }
+  let(:mh_provider_service) { PaymentProviders::MoneyhashService.new }
 
   let(:payment_url_response) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/checkout_url_response.json"))) }
 
@@ -27,16 +27,15 @@ RSpec.describe Invoices::Payments::MoneyhashService do
     end
 
     it "creates a payment and updates the invoice payment status" do
-      mh_status = provider_mh_service.event_to_payment_status(intent_processed_json.dig("type"))
       result = moneyhash_service.update_payment_status(
         organization_id: organization.id,
         provider_payment_id: intent_processed_json.dig("data", "intent_id"),
-        status: mh_status,
+        status: mh_provider_service.event_to_payment_status(intent_processed_json.dig("type")),
         metadata: intent_processed_json.dig("data", "intent", "custom_fields")
       ).raise_if_error!
 
       expect(result).to be_success
-      expect(result.payment.status).to eq(mh_status)
+      expect(result.payment.status).to eq("succeeded")
       expect(result.payment.provider_payment_id).to eq(intent_processed_json.dig("data", "intent_id"))
       expect(result.payment.payable_payment_status).to eq("succeeded")
       expect(result.invoice.payment_status).to eq("succeeded")

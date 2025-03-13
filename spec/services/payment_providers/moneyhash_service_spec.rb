@@ -16,11 +16,11 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
     let(:intent_time_expired_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.time_expired.json"))) }
 
     # intent processed payment & invoice
-    let(:payment_processed) { create(:payment, provider_payment_id: intent_processed_event_json.dig("data", "intent_id"), payable: invoice_processed) }
+    let(:payment_processed) { create(:payment, payment_provider: moneyhash_provider, provider_payment_id: intent_processed_event_json.dig("data", "intent_id"), payable: invoice_processed) }
     let(:invoice_processed) { create(:invoice, organization:, customer:) }
 
     # intent time expired payment & invoice
-    let(:payment_time_expired) { create(:payment, provider_payment_id: intent_time_expired_event_json.dig("data", "intent_id"), payable: invoice_time_expired) }
+    let(:payment_time_expired) { create(:payment, payment_provider: moneyhash_provider, provider_payment_id: intent_time_expired_event_json.dig("data", "intent_id"), payable: invoice_time_expired) }
     let(:invoice_time_expired) { create(:invoice, organization:, customer:) }
 
     it "handles intent.processed event" do
@@ -32,6 +32,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       payment_processed.reload
       expect(result).to be_success
       expect(payment_processed.status).to eq("succeeded")
+      expect(payment_processed.payable_payment_status).to eq("succeeded")
       expect(payment_processed.payable.payment_status).to eq("succeeded")
     end
 
@@ -44,6 +45,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       payment_time_expired.reload
       expect(result).to be_success
       expect(payment_time_expired.status).to eq("failed")
+      expect(payment_time_expired.payable_payment_status).to eq("failed")
       expect(payment_time_expired.payable.payment_status).to eq("failed")
     end
   end
@@ -58,15 +60,15 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
     let(:transaction_failed_event_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/transaction.purchase.failed.json"))) }
 
     # transaction successful payment & invoice
-    let(:payment) { create(:payment, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: invoice) }
+    let(:payment) { create(:payment, payment_provider: moneyhash_provider, provider_payment_id: transaction_successful_event_json.dig("intent", "id"), payable: invoice) }
     let(:invoice) { create(:invoice, organization:, customer:) }
 
     # transaction pending authentication payment & invoice
-    let(:payment_pending_authentication) { create(:payment, provider_payment_id: transaction_pending_authentication_event_json.dig("intent", "id"), payable: invoice_pending_authentication) }
+    let(:payment_pending_authentication) { create(:payment, payment_provider: moneyhash_provider, provider_payment_id: transaction_pending_authentication_event_json.dig("intent", "id"), payable: invoice_pending_authentication) }
     let(:invoice_pending_authentication) { create(:invoice, organization:, customer:) }
 
     # transaction failed payment & invoice
-    let(:payment_failed) { create(:payment, provider_payment_id: transaction_failed_event_json.dig("intent", "id"), payable: invoice_failed) }
+    let(:payment_failed) { create(:payment, payment_provider: moneyhash_provider, provider_payment_id: transaction_failed_event_json.dig("intent", "id"), payable: invoice_failed) }
     let(:invoice_failed) { create(:invoice, organization:, customer:) }
 
     before do
@@ -94,6 +96,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       payment.reload
       expect(result).to be_success
       expect(payment.status).to eq("succeeded")
+      expect(payment.payable_payment_status).to eq("succeeded")
       expect(payment.payable.payment_status).to eq("succeeded")
     end
 
@@ -102,6 +105,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       payment_pending_authentication.reload
       expect(result).to be_success
       expect(payment_pending_authentication.status).to eq("processing")
+      expect(payment_pending_authentication.payable_payment_status).to eq("pending")
       expect(payment_pending_authentication.payable.payment_status).to eq("pending")
     end
 
@@ -110,6 +114,7 @@ RSpec.describe PaymentProviders::MoneyhashService, type: :service do
       payment_failed.reload
       expect(result).to be_success
       expect(payment_failed.status).to eq("failed")
+      expect(payment_failed.payable_payment_status).to eq("failed")
       expect(payment_failed.payable.payment_status).to eq("failed")
     end
   end
