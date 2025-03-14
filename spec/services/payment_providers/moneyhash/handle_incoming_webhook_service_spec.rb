@@ -3,36 +3,30 @@
 require "rails_helper"
 
 RSpec.describe PaymentProviders::Moneyhash::HandleIncomingWebhookService, type: :service do
-  let(:webhook_service) { described_class.new(organization_id:, code:, source: :moneyhash, payload: body, signature: nil, event_type: body["type"]) }
+  subject(:result) { described_class.call(inbound_webhook:) }
 
   let(:organization) { create(:organization) }
-  let(:organization_id) { organization.id }
-  let(:moneyhash_provider) { create(:moneyhash_provider, organization:) }
-  let(:payment_provider_result) { BaseService::Result.new }
+  let(:code) { "mh-test" }
+  let(:moneyhash_provider) { create(:moneyhash_provider, code:, organization:) }
+  let(:intent_processed_payload) { JSON.parse(Rails.root.join("spec/fixtures/moneyhash/intent.processed.json").read) }
+  let(:inbound_webhook) { create :inbound_webhook, source: :moneyhash, organization:, code:, payload: intent_processed_payload }
+  let(:event_result) { intent_processed_payload }
 
-  let(:body) { JSON.parse(intent_processed_event).to_h }
-  let(:code) { moneyhash_provider.code }
-
-  let(:intent_processed_event) do
-    path = Rails.root.join("spec/fixtures/moneyhash/intent.processed.json")
-    File.read(path)
+  it "checks the webhook" do
+    moneyhash_provider
+    expect(result).to be_success
+    expect(result.event).to eq(event_result)
+    expect(PaymentProviders::Moneyhash::HandleEventJob).to have_been_enqueued
   end
 
-  before { moneyhash_provider }
+  context "when failing to find the provider" do
+    let(:inbound_webhook) { create :inbound_webhook, source: :moneyhash, organization:, code:, payload: "invalid" }
 
-  describe "incoming webhook event" do
-    before do
-      allow(PaymentProviders::FindService).to receive(:call)
-        .with(organization_id:, code: moneyhash_provider.code, payment_provider_type: "moneyhash")
-        .and_return(payment_provider_result)
-      allow(PaymentProviders::Moneyhash::HandleEventJob).to receive(:perform_later)
-    end
-
-    it "triggers Moneyhash::HandleEventJob" do
-      webhook_service.call
-
-      expect(PaymentProviders::Moneyhash::HandleEventJob).to have_received(:perform_later)
-        .with(organization:, event_json: body)
+    it "returns an error" do
+      expect(result).not_to be_success
+      expect(result.error).to be_a(BaseService::ServiceFailure)
+      expect(result.error.code).to eq("webhook_error")
+      expect(result.error.error_message).to eq("Payment provider not found")
     end
   end
 end

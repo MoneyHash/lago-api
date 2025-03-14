@@ -80,7 +80,7 @@ class WebhooksController < ApplicationController
       organization_id: params[:organization_id],
       webhook_source: :moneyhash,
       code: params[:code].presence,
-      payload: request.body.read,
+      payload: JSON.parse(request.body.read),
       # signature: request.headers["Moneyhash-Signature"], # TODO: Implement moneyhash signature
       event_type: params[:type]
     )
