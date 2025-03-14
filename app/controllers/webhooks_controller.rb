@@ -76,19 +76,16 @@ class WebhooksController < ApplicationController
   end
 
   def moneyhash
-    result = PaymentProviders::Moneyhash::HandleIncomingWebhookService.call(
+    result = InboundWebhooks::CreateService.call(
       organization_id: params[:organization_id],
+      webhook_source: :moneyhash,
       code: params[:code].presence,
-      body: JSON.parse(request.body.read)
+      payload: request.body.read,
+      # signature: request.headers["Moneyhash-Signature"], # TODO: Implement moneyhash signature
+      event_type: params[:type]
     )
 
-    unless result.success?
-      if result.error.is_a?(BaseService::ServiceFailure) && result.error.code == "webhook_error"
-        return head(:bad_request)
-      end
-
-      result.raise_if_error!
-    end
+    return head(:bad_request) unless result.success?
 
     head(:ok)
   end

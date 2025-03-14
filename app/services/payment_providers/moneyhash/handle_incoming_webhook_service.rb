@@ -3,10 +3,13 @@
 module PaymentProviders
   module Moneyhash
     class HandleIncomingWebhookService < BaseService
-      def initialize(organization_id:, body:, code: nil)
+      def initialize(organization_id:, source:, code:, payload:, signature:, event_type:)
         @organization_id = organization_id
-        @body = body
+        @source = source
         @code = code
+        @payload = payload
+        @signature = signature
+        @event_type = event_type
         super
       end
 
@@ -22,14 +25,14 @@ module PaymentProviders
 
         return handle_payment_provider_failure(payment_provider_result) unless payment_provider_result.success?
 
-        PaymentProviders::Moneyhash::HandleEventJob.perform_later(organization:, event_json: body)
-        result.event = body
+        PaymentProviders::Moneyhash::HandleEventJob.perform_later(organization:, event_json: payload)
+        result.event = payload
         result
       end
 
       private
 
-      attr_reader :organization_id, :body, :code
+      attr_reader :organization_id, :source, :code, :payload, :signature, :event_type
 
       def handle_payment_provider_failure(payment_provider_result)
         return payment_provider_result unless payment_provider_result.error.is_a?(BaseService::ServiceFailure)
