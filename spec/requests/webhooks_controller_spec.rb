@@ -286,7 +286,7 @@ RSpec.describe WebhooksController, type: :request do
           organization_id:,
           webhook_source: :moneyhash,
           code:,
-          payload: body.to_json,
+          payload: body,
           # signature:, # TODO:
           event_type: body["type"]
         )
