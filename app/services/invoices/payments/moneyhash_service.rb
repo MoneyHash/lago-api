@@ -137,12 +137,6 @@ module Invoices
           customer: invoice.customer.moneyhash_customer.provider_customer_id,
           webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: false,
-          # TODO: Discuss this with the team. It's supposed to be a regular payment? should we save card? should we add recurring data?
-          # tokenize_card: true,
-          # payment_type: "UNSCHEDULED",
-          # recurring_data: {
-          #   agreement_id: customer.id
-          # },
           custom_fields: {
             lago_mh_connection_id: moneyhash_payment_provider.id,
             lago_mh_connection_code: moneyhash_payment_provider.code,
@@ -157,6 +151,17 @@ module Invoices
           }
         }
 
+        # Tokenize card if the customer doesn't have a saved one
+        if customer.moneyhash_customer.provider_customer_id.blank?
+          params[:custom_fields].merge!(
+            tokenize_card: true,
+            payment_type: "UNSCHEDULED",
+            recurring_data: {
+              agreement_id: customer.id
+            }
+          )
+        end
+
         # Include subscription data for subscription invoices
         if invoice.invoice_type == "subscription"
           params[:custom_fields].merge!(
@@ -164,6 +169,7 @@ module Invoices
             lago_subscription_external_id: invoice.subscriptions&.first&.external_id.to_s
           )
         end
+
         params
       end
 
