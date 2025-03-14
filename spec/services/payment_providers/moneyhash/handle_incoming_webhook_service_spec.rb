@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe PaymentProviders::Moneyhash::HandleIncomingWebhookService, type: :service do
-  let(:webhook_service) { described_class.new(organization_id:, body:, code:) }
+  let(:webhook_service) { described_class.new(organization_id:, code:, source: :moneyhash, payload: body, signature: nil, event_type: body["type"]) }
 
   let(:organization) { create(:organization) }
   let(:organization_id) { organization.id }
