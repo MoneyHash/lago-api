@@ -32,6 +32,8 @@ module PaymentProviders
 
         attr_reader :payment, :invoice, :provider_customer
 
+        delegate :customer, to: :invoice
+
         def create_moneyhash_payment
           payment_params = {
             amount: invoice.total_amount_cents / 100.0,
@@ -47,22 +49,23 @@ module PaymentProviders
             },
             card_token: provider_customer.payment_method_id,
             custom_fields: {
-              lago_mh_connection_id: moneyhash_payment_provider.id,
-              lago_mh_connection_code: moneyhash_payment_provider.code,
-              lago_mit: true,
-              lago_customer_id: invoice.customer.id,
-              lago_external_customer_id: invoice.customer&.external_id.to_s,
-              lago_provider_customer_id: provider_customer.provider_customer_id,
-              lago_payable_id: invoice.id,
-              lago_payable_type: invoice.class.name,
+              # plan/subscription
               lago_plan_id: invoice.subscriptions&.first&.plan_id.to_s,
               lago_subscription_external_id: invoice.subscriptions&.first&.external_id.to_s,
-              lago_organization_id: invoice.organization.id,
+              # payable
+              lago_payable_id: invoice.id,
+              lago_payable_type: invoice.class.name,
+              lago_payable_invoice_type: invoice.invoice_type.to_s,
+              # mit flag
+              lago_mit: true,
+              # service
               lago_mh_service: "PaymentProviders::Moneyhash::Payments::CreateService",
-              lago_invoice_type: invoice.invoice_type,
+              # request
               lago_request: "invoice_automatic_payment"
             }
           }
+
+          payment_params[:custom_fields].merge!(provider_customer.mh_custom_fields)
 
           headers = {
             "Content-Type" => "application/json",

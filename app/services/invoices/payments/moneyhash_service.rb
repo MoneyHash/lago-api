@@ -133,35 +133,37 @@ module Invoices
           webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: false,
           custom_fields: {
-            lago_mh_connection_id: moneyhash_payment_provider.id,
-            lago_mh_connection_code: moneyhash_payment_provider.code,
-            lago_mit: false,
-            lago_customer_id: invoice.customer.id,
+            # payable
             lago_payable_id: invoice.id,
             lago_payable_type: invoice.class.name,
-            lago_organization_id: organization.id,
+            lago_payable_invoice_type: invoice.invoice_type,
+            # mit flag
+            lago_mit: false,
+            # service
             lago_mh_service: "Invoices::Payments::MoneyhashService",
-            lago_invoice_type: invoice.invoice_type,
+            # request
             lago_request: "generate_payment_url"
           }
         }
 
-        # Tokenize card if the customer doesn't have a saved one
-        if customer.moneyhash_customer.provider_customer_id.blank?
-          params[:custom_fields].merge!(
-            tokenize_card: true,
-            payment_type: "UNSCHEDULED",
-            recurring_data: {
-              agreement_id: customer.id
-            }
-          )
-        end
+        params[:custom_fields].merge!(customer.moneyhash_customer.mh_custom_fields)
 
         # Include subscription data for subscription invoices
         if invoice.invoice_type == "subscription"
           params[:custom_fields].merge!(
             lago_plan_id: invoice.subscriptions&.first&.plan_id.to_s,
             lago_subscription_external_id: invoice.subscriptions&.first&.external_id.to_s
+          )
+        end
+
+        # Tokenize card if the customer doesn't have a saved one
+        if customer.moneyhash_customer.provider_customer_id.blank?
+          params.merge!(
+            tokenize_card: true,
+            payment_type: "UNSCHEDULED",
+            recurring_data: {
+              agreement_id: customer.id
+            }
           )
         end
 

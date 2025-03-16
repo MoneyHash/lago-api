@@ -20,6 +20,26 @@ module PaymentProviderCustomers
         billing_data[:postal_code] = customer.zipcode if customer.zipcode.present?
       end
     end
+
+    # extract all possible custom_fields from moneyhash_customer
+    def mh_custom_fields
+      {
+        # connection
+        lago_mh_connection_id: payment_provider.id,
+        lago_mh_connection_code: payment_provider.code,
+        # customer
+        lago_customer_id: customer.id,
+        lago_customer_external_id: customer.external_id.to_s,
+        lago_customer_name: customer.name.to_s,
+        lago_customer_currency: customer.currency.to_s,
+        lago_customer_legal_name: customer.legal_name.to_s,
+        lago_customer_legal_number: customer.legal_number.to_s,
+        lago_customer_tax_identification_number: customer.tax_identification_number.to_s,
+        lago_customer_provider_customer_id: provider_customer_id.to_s,
+        # organization
+        lago_organization_id: customer.organization.id
+      }
+    end
   end
 end
 

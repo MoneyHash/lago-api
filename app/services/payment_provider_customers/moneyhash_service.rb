@@ -40,6 +40,7 @@ module PaymentProviderCustomers
 
     def generate_checkout_url(send_webhook: true)
       return result.not_found_failure!(resource: "moneyhash_payment_provider") unless moneyhash_payment_provider
+      return result.not_found_failure!(resource: "moneyhash_customer") unless moneyhash_customer
 
       response = checkout_url_client.post_with_response(checkout_url_params, headers)
       moneyhash_result = JSON.parse(response.body)
@@ -105,18 +106,17 @@ module PaymentProviderCustomers
         phone_number: customer&.phone,
         tax_id: customer&.tax_identification_number&.to_i&.to_s,
         address: [customer&.address_line1, customer&.address_line2].compact.join(" "),
-        contact_person_name: customer&.display_name.presence,
+        contact_person_name: (customer&.name.presence || [customer&.firstname, customer&.lastname].compact.join(" ")).presence,
         company_name: customer&.legal_name,
         custom_fields: {
-          lago_mh_connection_id: moneyhash_payment_provider.id,
-          lago_mh_connection_code: moneyhash_payment_provider.code,
-          lago_customer_id: moneyhash_customer.customer_id,
-          lago_customer_external_id: moneyhash_customer.customer&.external_id,
-          lago_organization_id: moneyhash_customer&.customer&.organization&.id,
+          # service
           lago_mh_service: "PaymentProviderCustomers::MoneyhashService",
+          # request
           lago_request: "create_moneyhash_customer"
         }
       }.compact
+
+      customer_params[:custom_fields].merge!(moneyhash_customer.mh_custom_fields)
 
       response = customers_client.post_with_response(customer_params, headers)
       JSON.parse(response.body)
@@ -151,7 +151,7 @@ module PaymentProviderCustomers
     end
 
     def checkout_url_params
-      {
+      params = {
         amount: 5.0,
         amount_currency: customer.currency.presence || "USD",
         flow_id: moneyhash_payment_provider.flow_id,
@@ -165,16 +165,18 @@ module PaymentProviderCustomers
           agreement_id: moneyhash_customer.customer_id
         },
         custom_fields: {
-          lago_mh_connection_id: moneyhash_payment_provider.id,
-          lago_mh_connection_code: moneyhash_payment_provider.code,
+          # mit flag
           lago_mit: false,
-          lago_provider_customer_id: moneyhash_customer.provider_customer_id,
-          lago_customer_id: moneyhash_customer.customer_id,
-          lago_organization_id: moneyhash_customer&.customer&.organization&.id,
+          # service
           lago_mh_service: "PaymentProviderCustomers::MoneyhashService",
+          # request
           lago_request: "generate_checkout_url"
         }
       }
+
+      params[:custom_fields].merge!(moneyhash_customer.mh_custom_fields)
+
+      params
     end
 
     def handle_missing_customer(organization_id, metadata)

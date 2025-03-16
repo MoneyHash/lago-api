@@ -160,19 +160,23 @@ module PaymentRequests
             agreement_id: customer.id
           },
           custom_fields: {
-            lago_mh_connection_id: moneyhash_payment_provider.id,
-            lago_mh_connection_code: moneyhash_payment_provider.code,
-            lago_mit: true,
-            lago_customer_id: customer.id,
-            lago_payable_id: payable.id,
-            lago_payable_type: payable.class.name,
-            lago_organization_id: organization.id,
+            # plan/subscription
             lago_plan_id: payable&.invoices&.first&.subscriptions&.first&.plan_id.to_s,
             lago_subscription_external_id: payable&.invoices&.first&.subscriptions&.first&.external_id.to_s,
+            # payable
+            lago_payable_id: payable.id,
+            lago_payable_type: payable.class.name,
+            # mit flag
+            lago_mit: true,
+            # service
             lago_mh_service: "PaymentRequests::Payments::MoneyhashService",
+            # request
             lago_request: "create_payment_request"
           }
         }
+
+        payment_params[:custom_fields].merge!(payable.customer.moneyhash_customer.mh_custom_fields)
+
         response = client.post_with_response(payment_params, headers)
         JSON.parse(response.body)
       rescue LagoHttpClient::HttpError => e
