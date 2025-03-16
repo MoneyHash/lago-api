@@ -150,6 +150,7 @@ module PaymentRequests
           amount: payable.total_amount_cents / 100.0,
           amount_currency: payable.currency.upcase,
           flow_id: moneyhash_payment_provider.flow_id,
+          billing_data: customer.moneyhash_customer.mh_billing_data,
           customer: customer.moneyhash_customer.provider_customer_id,
           webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: true,

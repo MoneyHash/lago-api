@@ -128,12 +128,7 @@ module Invoices
           amount: invoice.total_amount_cents / 100.0,
           amount_currency: invoice.currency.upcase,
           flow_id: moneyhash_payment_provider.flow_id,
-          billing_data: {
-            first_name: invoice&.customer&.firstname,
-            last_name: invoice&.customer&.lastname,
-            phone_number: invoice&.customer&.phone,
-            email: invoice&.customer&.email
-          },
+          billing_data: invoice.customer.moneyhash_customer.mh_billing_data,
           customer: invoice.customer.moneyhash_customer.provider_customer_id,
           webhook_url: moneyhash_payment_provider.webhook_end_point,
           merchant_initiated: false,

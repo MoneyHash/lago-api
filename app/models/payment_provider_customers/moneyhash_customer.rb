@@ -3,6 +3,23 @@
 module PaymentProviderCustomers
   class MoneyhashCustomer < BaseCustomer
     settings_accessors :payment_method_id
+
+    # extract MoneyHash's billing data from customer
+    def mh_billing_data
+      {}.tap do |billing_data|
+        billing_data[:name] = customer.name if customer.name.present?
+        billing_data[:first_name] = customer.firstname if customer.firstname.present?
+        billing_data[:last_name] = customer.lastname if customer.lastname.present?
+        billing_data[:email] = customer.email if customer.email.present?
+        billing_data[:phone_number] = customer.phone if customer.phone.present?
+        billing_data[:address] = customer.address_line1 if customer.address_line1.present?
+        billing_data[:address1] = customer.address_line2 if customer.address_line2.present?
+        billing_data[:city] = customer.city if customer.city.present?
+        billing_data[:state] = customer.state if customer.state.present?
+        billing_data[:country] = customer.country if customer.country.present?
+        billing_data[:postal_code] = customer.zipcode if customer.zipcode.present?
+      end
+    end
   end
 end
 

@@ -103,7 +103,7 @@ module PaymentProviderCustomers
         last_name: customer&.lastname,
         email: customer&.email,
         phone_number: customer&.phone,
-        tax_id: customer&.tax_identification_number,
+        tax_id: customer&.tax_identification_number&.to_i&.to_s,
         address: [customer&.address_line1, customer&.address_line2].compact.join(" "),
         contact_person_name: customer&.display_name.presence,
         company_name: customer&.legal_name,
@@ -155,12 +155,7 @@ module PaymentProviderCustomers
         amount: 5.0,
         amount_currency: customer.currency.presence || "USD",
         flow_id: moneyhash_payment_provider.flow_id,
-        billing_data: {
-          first_name: customer&.firstname,
-          last_name: customer&.lastname,
-          phone_number: customer&.phone,
-          email: customer&.email
-        },
+        billing_data: moneyhash_customer.mh_billing_data,
         customer: moneyhash_customer.provider_customer_id,
         webhook_url: moneyhash_payment_provider.webhook_end_point,
         merchant_initiated: false,
