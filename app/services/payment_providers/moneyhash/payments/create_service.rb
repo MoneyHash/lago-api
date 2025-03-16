@@ -36,8 +36,8 @@ module PaymentProviders
 
         def create_moneyhash_payment
           payment_params = {
-            amount: invoice.total_amount_cents / 100.0,
-            amount_currency: invoice.currency.upcase,
+            amount: payment.amount_cents.div(100).to_f,
+            amount_currency: payment.amount_currency.upcase,
             flow_id: moneyhash_payment_provider.flow_id,
             billing_data: provider_customer.mh_billing_data,
             customer: provider_customer.provider_customer_id,
@@ -45,7 +45,7 @@ module PaymentProviders
             payment_type: "UNSCHEDULED",
             merchant_initiated: true,
             recurring_data: {
-              agreement_id: invoice.customer.id
+              agreement_id: customer.id
             },
             card_token: provider_customer.payment_method_id,
             custom_fields: {

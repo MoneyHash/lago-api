@@ -125,7 +125,7 @@ module Invoices
 
       def payment_url_params
         params = {
-          amount: invoice.total_amount_cents / 100.0,
+          amount: invoice.total_due_amount_cents.div(100).to_f,
           amount_currency: invoice.currency.upcase,
           flow_id: moneyhash_payment_provider.flow_id,
           billing_data: invoice.customer.moneyhash_customer.mh_billing_data,
