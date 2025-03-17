@@ -27,7 +27,7 @@ RSpec.describe DataApi::RevenueStreams::PlansService, type: :service do
     context "when licence is premium" do
       around { |test| lago_premium!(&test) }
 
-      it "returns expected revenue streams" do
+      it "returns expected revenue streams plans" do
         expect(service_call).to be_success
         expect(service_call.revenue_streams_plans.count).to eq(4)
         expect(service_call.revenue_streams_plans.first).to eq(

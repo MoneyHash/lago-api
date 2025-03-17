@@ -41,9 +41,9 @@ class BillingEntity < ApplicationRecord
 
   default_scope -> { kept }
 
-  validates :is_default,
+  validates :code,
     uniqueness: {
-      conditions: -> { where(is_default: true, archived_at: nil, deleted_at: nil) },
+      conditions: -> { where(archived_at: nil, deleted_at: nil) },
       scope: :organization_id
     }
   validates :country, country_code: true, unless: -> { country.nil? }
@@ -64,6 +64,29 @@ class BillingEntity < ApplicationRecord
   validate :validate_email_settings
 
   after_create :generate_document_number_prefix
+
+  def document_number_prefix=(value)
+    super(value&.upcase)
+  end
+
+  def logo_url
+    return if logo.blank?
+
+    Rails.application.routes.url_helpers.rails_blob_url(logo, host: ENV["LAGO_API_URL"])
+  end
+
+  def base64_logo
+    return if logo.blank?
+
+    logo.blob.open do |tempfile|
+      data = tempfile.read
+      Base64.encode64(data)
+    end
+  end
+
+  def eu_vat_eligible?
+    country && LagoEuVat::Rate.new.countries_code.include?(country)
+  end
 
   private
 
@@ -100,7 +123,6 @@ end
 #  finalize_zero_amount_invoice :boolean          default(TRUE), not null
 #  invoice_footer               :text
 #  invoice_grace_period         :integer          default(0), not null
-#  is_default                   :boolean          default(FALSE), not null
 #  legal_name                   :string
 #  legal_number                 :string
 #  logo                         :string
@@ -119,8 +141,8 @@ end
 # Indexes
 #
 #  index_billing_entities_on_applied_dunning_campaign_id  (applied_dunning_campaign_id)
+#  index_billing_entities_on_code_and_organization_id     (code,organization_id) UNIQUE WHERE ((deleted_at IS NULL) AND (archived_at IS NULL))
 #  index_billing_entities_on_organization_id              (organization_id)
-#  unique_default_billing_entity_per_organization         (organization_id) UNIQUE WHERE ((is_default = true) AND (archived_at IS NULL) AND (deleted_at IS NULL))
 #
 # Foreign Keys
 #

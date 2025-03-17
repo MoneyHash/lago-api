@@ -13,7 +13,7 @@ gem "bootsnap", require: false
 gem "clockwork", require: false
 gem "parallel"
 gem "puma", "~> 6.5"
-gem "rails", "~> 7.1.5.1"
+gem "rails", "~> 7.2"
 gem "redis"
 gem "sidekiq"
 gem "sidekiq-throttled", "1.4.0" # '1.5.0' was losing some jobs
@@ -85,8 +85,8 @@ gem "slim"
 gem "slim-rails"
 
 # Kafka
-gem "karafka", "~> 2.4.0"
-gem "karafka-web", "~> 0.9.0"
+gem "karafka", "~> 2.4.17"
+gem "karafka-web", "~> 0.10.4"
 
 # Taxes
 gem "valvat", require: false
@@ -117,6 +117,7 @@ group :development, :test do
   gem "rubocop-rspec", require: false
   gem "rubocop-thread_safety", require: false
   gem "awesome_print"
+  gem "pry"
 end
 
 group :test do
@@ -124,6 +125,7 @@ group :test do
   gem "guard-rspec", require: false
   gem "rspec-graphql_matchers"
   gem "shoulda-matchers"
+  gem "karafka-testing"
 end
 
 group :development do

@@ -23,24 +23,28 @@ RSpec.describe BillingEntity, type: :model do
   it { is_expected.to have_many(:applied_taxes).dependent(:destroy) }
   it { is_expected.to have_many(:taxes).through(:applied_taxes) }
 
-  describe "is_default validation" do
+  describe "code validation" do
     let(:organization) { create :organization }
 
-    it "validates uniqueness of organization_id for is_default excluding deleted and archived records" do
-      # by default an organization is built with a default billing entity
-      expect(organization.default_billing_entity.discard!).to be true
-      archived_record = create(:billing_entity, :default, :archived, organization:)
-      expect(archived_record).to be_valid
-
-      record_1 = create(:billing_entity, :default, organization:)
+    it "validates uniqueness of organization_id for code excluding deleted and archived records" do
+      record_1 = create(:billing_entity, organization: organization)
       expect(record_1).to be_valid
 
-      record_2 = build(:billing_entity, :default, organization:)
+      record_2 = build(:billing_entity, organization: organization, code: record_1.code)
       expect(record_2).not_to be_valid
-      expect(record_2.errors[:is_default]).to include("value_already_exist")
+      expect(record_2.errors[:code]).to include("value_already_exist")
 
-      record_3 = build(:billing_entity, :default)
+      record_3 = create(:billing_entity, code: record_1.code)
       expect(record_3).to be_valid
+
+      record_1.discard!
+      record_4 = build(:billing_entity, organization: organization, code: record_1.code)
+      expect(record_4).to be_valid
+
+      record_1.undiscard!
+      record_1.update(archived_at: Time.current)
+      record_5 = build(:billing_entity, organization: organization, code: record_1.code)
+      expect(record_5).to be_valid
     end
   end
 
@@ -169,6 +173,62 @@ RSpec.describe BillingEntity, type: :model do
 
       it "does not change document number prefix of billing_entity" do
         expect { subject }.not_to change(billing_entity, :document_number_prefix)
+      end
+    end
+  end
+
+  describe "#document_number_prefix=" do
+    it "upcases the value" do
+      billing_entity.document_number_prefix = "abc-1234"
+      expect(billing_entity.document_number_prefix).to eq "ABC-1234"
+    end
+  end
+
+  describe "#logo_url" do
+    it "returns the url of the logo saved locally" do
+      logo_file = File.read(Rails.root.join("spec/factories/images/logo.png"))
+      billing_entity.logo.attach(
+        io: StringIO.new(logo_file),
+        filename: "logo",
+        content_type: "image/png"
+      )
+      billing_entity.save!
+      expect(billing_entity.logo_url).to include("rails/active_storage/blobs")
+    end
+  end
+
+  describe "#base64_logo" do
+    it "returns the base64 encoded logo" do
+      logo_file = File.read(Rails.root.join("spec/factories/images/logo.png"))
+      billing_entity.logo.attach(
+        io: StringIO.new(logo_file),
+        filename: "logo",
+        content_type: "image/png"
+      )
+      billing_entity.save!
+      expect(billing_entity.base64_logo).to eq Base64.encode64(logo_file)
+    end
+  end
+
+  describe "#eu_vat_eligible?" do
+    context "when country is nil" do
+      it "returns false" do
+        billing_entity.country = nil
+        expect(billing_entity).not_to be_eu_vat_eligible
+      end
+    end
+
+    context "when country is not in the EU" do
+      it "returns false" do
+        billing_entity.country = "US"
+        expect(billing_entity).not_to be_eu_vat_eligible
+      end
+    end
+
+    context "when country is in the EU" do
+      it "returns true" do
+        billing_entity.country = "FR"
+        expect(billing_entity).to be_eu_vat_eligible
       end
     end
   end

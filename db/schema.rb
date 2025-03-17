@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_27_155522) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_10_213734) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -235,15 +235,14 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_27_155522) do
     t.string "code", null: false
     t.string "tax_identification_number"
     t.float "vat_rate", default: 0.0, null: false
-    t.boolean "is_default", default: false, null: false
     t.datetime "archived_at"
     t.datetime "deleted_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "applied_dunning_campaign_id"
     t.index ["applied_dunning_campaign_id"], name: "index_billing_entities_on_applied_dunning_campaign_id"
+    t.index ["code", "organization_id"], name: "index_billing_entities_on_code_and_organization_id", unique: true, where: "((deleted_at IS NULL) AND (archived_at IS NULL))"
     t.index ["organization_id"], name: "index_billing_entities_on_organization_id"
-    t.index ["organization_id"], name: "unique_default_billing_entity_per_organization", unique: true, where: "((is_default = true) AND (archived_at IS NULL) AND (deleted_at IS NULL))"
   end
 
   create_table "billing_entities_taxes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -919,15 +918,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_27_155522) do
     t.index ["organization_id"], name: "index_invoice_custom_sections_on_organization_id"
   end
 
-  create_table "invoice_errors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.text "backtrace"
-    t.json "invoice"
-    t.json "subscriptions"
-    t.json "error"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "invoice_metadata", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "invoice_id", null: false
     t.string "key", null: false
@@ -1279,6 +1269,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_27_155522) do
     t.datetime "started_at"
     t.boolean "invoice_requires_successful_payment", default: false, null: false
     t.jsonb "transaction_metadata", default: []
+    t.datetime "expiration_at"
+    t.datetime "terminated_at"
+    t.integer "status", default: 0
+    t.index ["expiration_at"], name: "index_recurring_transaction_rules_on_expiration_at"
     t.index ["started_at"], name: "index_recurring_transaction_rules_on_started_at"
     t.index ["wallet_id"], name: "index_recurring_transaction_rules_on_wallet_id"
   end

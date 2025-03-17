@@ -98,7 +98,7 @@ module PaymentRequests
       end
 
       def create_payment(provider_payment_id:, metadata:)
-        @payable = PaymentRequest.find_by(id: metadata["lago_payable_id"])
+        @payable = payable || PaymentRequest.find_by(id: metadata["lago_payable_id"])
 
         unless payable
           result.not_found_failure!(resource: "payment_request")

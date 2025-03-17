@@ -9,8 +9,7 @@ billable_metrics:
   update:
   delete:
 data_api:
-  revenue_streams:
-    view:
+  view:
 plans:
   view: true
   create:
@@ -106,3 +105,5 @@ payment_requests:
 payments:
   view: true
   create:
+payment_receipts:
+  view: true

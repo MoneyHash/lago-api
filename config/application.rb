@@ -8,7 +8,10 @@ Bundler.require(*Rails.groups)
 
 module LagoApi
   class Application < Rails::Application
-    config.load_defaults(7.1)
+    config.load_defaults 7.2
+
+    # Disable YJIT as we are not ready yet
+    config.yjit = false
 
     # TODO: Should be turned to false
     config.add_autoload_paths_to_load_path = true
@@ -44,3 +47,5 @@ module LagoApi
 end
 
 require_relative "../lib/active_job/uniqueness/strategies/until_executed_patch"
+require_relative "../lib/active_job/logging"
+require_relative "../lib/active_job/json_log_subscriber"
