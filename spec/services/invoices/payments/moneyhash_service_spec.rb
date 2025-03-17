@@ -9,7 +9,7 @@ RSpec.describe Invoices::Payments::MoneyhashService do
   let(:organization) { create(:organization) }
   let(:customer) { create(:customer, organization:) }
   let(:moneyhash_provider) { create(:moneyhash_provider, organization:) }
-  let(:moneyhash_customer) { create(:moneyhash_customer, customer:) }
+  let(:moneyhash_customer) { create(:moneyhash_customer, customer:, payment_provider: moneyhash_provider) }
 
   let(:intent_processed_json) { JSON.parse(File.read(Rails.root.join("spec/fixtures/moneyhash/intent.processed.json"))) }
   let(:provider_payment_id) { intent_processed_json.dig("data", "id") }

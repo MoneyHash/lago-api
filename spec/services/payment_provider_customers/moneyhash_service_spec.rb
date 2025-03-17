@@ -11,7 +11,7 @@ RSpec.describe PaymentProviderCustomers::MoneyhashService, type: :service do
   let(:customer_name) { nil }
 
   let(:moneyhash_customer) do
-    create(:moneyhash_customer, customer:, provider_customer_id: nil)
+    create(:moneyhash_customer, customer:, provider_customer_id: nil, payment_provider: moneyhash_provider)
   end
 
   describe "#create" do

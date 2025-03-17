@@ -6,13 +6,13 @@ RSpec.describe PaymentProviders::Moneyhash::Payments::CreateService do
   let(:organization) { create(:organization) }
   let(:moneyhash_provider) { create(:moneyhash_provider, organization:) }
   let(:customer) { create(:customer, organization:) }
-  let(:moneyhash_customer) { create(:moneyhash_customer, customer:) }
+  let(:moneyhash_customer) { create(:moneyhash_customer, customer:, payment_provider: moneyhash_provider) }
 
   let(:reference) { "1234567890" }
   let(:metadata) { {} }
 
   let(:invoice) { create(:invoice, organization:, customer:, invoice_type: :subscription) }
-  let(:payment) { create(:payment, payable: invoice, payment_provider: moneyhash_provider) }
+  let(:payment) { create(:payment, payable: invoice, payment_provider: moneyhash_provider, payment_provider_customer: moneyhash_customer) }
 
   let(:request_payload) { JSON.parse(File.read("spec/fixtures/moneyhash/recurring_mit_payment_payload.json")) }
   let(:failure_response) { JSON.parse(File.read("spec/fixtures/moneyhash/recurring_mit_payment_failure_response.json")) }
