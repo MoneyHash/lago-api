@@ -5,10 +5,6 @@ module PaymentRequests
     class MoneyhashService < BaseService
       include Customers::PaymentProviderFinder
 
-      PENDING_STATUSES = %w[PENDING].freeze
-      SUCCESS_STATUSES = %w[PROCESSED].freeze
-      FAILED_STATUSES = %w[FAILED].freeze
-
       def initialize(payable = nil)
         @payable = payable
 
@@ -17,7 +13,8 @@ module PaymentRequests
 
       def create
         result.payable = payable
-        result.single_validation_failure!(error_code: "payment_method_error") if moneyhash_payment_method.nil?
+        return result.not_found_failure!(resource: "moneyhash_customer") if customer&.moneyhash_customer&.provider_customer_id.blank?
+        return result.not_found_failure!(resource: "payment_method") if moneyhash_payment_method.nil?
         return result unless should_process_payment?
 
         unless payable.total_amount_cents.positive?
@@ -29,6 +26,7 @@ module PaymentRequests
 
         moneyhash_result = create_moneyhash_payment
         return result unless moneyhash_result
+        mh_status = moneyhash_result.dig("data", "status")
 
         payment = Payment.new(
           payable: payable,
@@ -37,23 +35,23 @@ module PaymentRequests
           amount_cents: payable.amount_cents,
           amount_currency: payable.currency&.upcase,
           provider_payment_id: moneyhash_result.dig("data", "id"),
-          status: moneyhash_result.dig("data", "status")
+          status: moneyhash_payment_provider.determine_payment_status(mh_status)
         )
 
         payment.save!
 
-        payable_payment_status = payable_payment_status(payment.status)
+        payable_payment_status = moneyhash_payment_provider.payable_payment_status(mh_status)
 
         update_payable_payment_status(
           payment_status: payable_payment_status,
-          processing: payment.status == "processing"
+          processing: payment.status == "pending"
         )
         update_invoices_payment_status(
           payment_status: payable_payment_status,
-          processing: payment.status == "processing"
+          processing: payment.status == "pending"
         )
         result.payment = payment
-        result.payable_payment_status
+        result.payable_payment_status = payable_payment_status
         result
       end
 
@@ -70,10 +68,10 @@ module PaymentRequests
         result.payment = payment
         result.payable = payment.payable
         return result if payment.payable.payment_succeeded?
-        payment.update!(status:)
+        payment.update!(status: moneyhash_payment_provider.determine_payment_status(status))
 
-        processing = status == "processing"
-        payment_status = payable_payment_status(status)
+        processing = status == "pending"
+        payment_status = moneyhash_payment_provider.payable_payment_status(status)
         update_payable_payment_status(payment_status:, processing:)
         update_invoices_payment_status(payment_status:, processing:)
 
@@ -183,14 +181,6 @@ module PaymentRequests
         deliver_error_webhook(e)
         update_payable_payment_status(payment_status: :failed, deliver_webhook: false)
         nil
-      end
-
-      def payable_payment_status(payment_status)
-        return :pending if PENDING_STATUSES.include?(payment_status)
-        return :succeeded if SUCCESS_STATUSES.include?(payment_status)
-        return :failed if FAILED_STATUSES.include?(payment_status)
-
-        payment_status
       end
 
       def update_payable_payment_status(payment_status:, deliver_webhook: true, processing: false)
