@@ -205,12 +205,13 @@ RSpec.describe PaymentRequests::Payments::MoneyhashService do
 
       context "when payable is not found" do
         let(:metadata) { {"lago_payable_id" => "invalid_id"} }
+        let(:moneyhash_service) { described_class.new(nil) }
 
         it "returns not found error" do
           result = moneyhash_service.update_payment_status(
             organization_id: organization.id,
             provider_payment_id: "new_payment_id",
-            status: "succeeded",
+            status: "SUCCESSFUL",
             metadata:
           )
 
