@@ -29,7 +29,6 @@ module PaymentProviders
         )
       end
 
-      moneyhash_provider.api_key
       old_code = moneyhash_provider.code
       moneyhash_provider.api_key = args[:api_key] if args.key?(:api_key)
       moneyhash_provider.code = args[:code] if args.key?(:code)
