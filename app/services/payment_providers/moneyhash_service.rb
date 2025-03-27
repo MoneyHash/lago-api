@@ -20,7 +20,7 @@ module PaymentProviders
         payment_provider_type: "moneyhash"
       )
 
-      moneyhash_provider = if payment_provider_result.success?
+      @moneyhash_provider = if payment_provider_result.success?
         payment_provider_result.payment_provider
       else
         PaymentProviders::MoneyhashProvider.new(
@@ -34,6 +34,12 @@ module PaymentProviders
       moneyhash_provider.code = args[:code] if args.key?(:code)
       moneyhash_provider.name = args[:name] if args.key?(:name)
       moneyhash_provider.flow_id = args[:flow_id] if args.key?(:flow_id)
+
+      if moneyhash_provider.signature_key.blank?
+        signature_result = get_signature_key
+        return signature_result unless signature_result.success?
+        moneyhash_provider.signature_key = signature_result.signature_key
+      end
 
       moneyhash_provider.save(validate: false)
 
@@ -73,7 +79,23 @@ module PaymentProviders
       end
     end
 
+    attr_reader :moneyhash_provider
+
     private
+
+    def get_signature_key
+      response = LagoHttpClient::Client.new(
+        "#{::PaymentProviders::MoneyhashProvider.api_base_url}/api/v1/organizations/get-webhook-signature-key/"
+      ).get(
+        headers: {
+          "X-Api-Key" => moneyhash_provider.api_key
+        }
+      )
+      result.signature_key = response["data"]["webhook_signature_secret"]
+      result
+    rescue LagoHttpClient::HttpError => e
+      result.service_failure!(code: "moneyhash_error", message: "#{e.error_code}: #{e.error_body}")
+    end
 
     def event_handlers
       {

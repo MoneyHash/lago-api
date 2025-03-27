@@ -22,7 +22,7 @@ module PaymentProviders
     validates :api_key, presence: true
     validates :flow_id, presence: true, length: {maximum: 20}
 
-    secrets_accessors :api_key
+    secrets_accessors :api_key, :signature_key
     settings_accessors :flow_id
 
     def self.api_base_url
