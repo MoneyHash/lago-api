@@ -287,7 +287,7 @@ RSpec.describe WebhooksController, type: :request do
           webhook_source: :moneyhash,
           code:,
           payload: body,
-          # signature:, # TODO:
+          signature: "t=1743090080,v1=placeholder,v2=placeholder,v3=placeholder",
           event_type: body["type"]
         )
         .and_return(result)
@@ -298,7 +298,8 @@ RSpec.describe WebhooksController, type: :request do
         "/webhooks/moneyhash/#{organization_id}?code=#{code}",
         params: body.to_json,
         headers: {
-          "Content-Type" => "application/json"
+          "Content-Type" => "application/json",
+          "Moneyhash-Signature" => "t=1743090080,v1=placeholder,v2=placeholder,v3=placeholder"
         }
       )
 
@@ -317,7 +318,8 @@ RSpec.describe WebhooksController, type: :request do
           "/webhooks/moneyhash/#{organization_id}?code=#{code}",
           params: body.to_json,
           headers: {
-            "Content-Type" => "application/json"
+            "Content-Type" => "application/json",
+            "Moneyhash-Signature" => "t=1743090080,v1=placeholder,v2=placeholder,v3=placeholder"
           }
         )
 
